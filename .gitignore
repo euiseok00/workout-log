@@ -1,16 +1,14 @@
-# Compiled class file
+# =========================
+# Java
+# =========================
+
+# Compiled class files
 *.class
 
-# Log file
+# Log files
 *.log
 
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
+# Package files
 *.jar
 *.war
 *.nar
@@ -19,6 +17,75 @@
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+# JVM crash logs
 hs_err_pid*
 replay_pid*
+
+
+# =========================
+# Backend - Spring Boot / Gradle
+# =========================
+
+backend/.gradle/
+backend/build/
+backend/out/
+
+# Gradle
+.gradle/
+build/
+
+
+# =========================
+# IntelliJ IDEA
+# =========================
+
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+
+# =========================
+# Frontend - React / Vite / Node
+# =========================
+
+frontend/node_modules/
+frontend/dist/
+
+node_modules/
+dist/
+
+# npm logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+
+# =========================
+# VS Code
+# =========================
+
+.vscode/
+
+
+# =========================
+# Environment variables
+# =========================
+
+.env
+.env.*
+!.env.example
+
+
+# =========================
+# OS
+# =========================
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# macOS
+.DS_Store
