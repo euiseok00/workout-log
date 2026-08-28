@@ -1,88 +1,144 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
-const categories = ['전체', '가슴', '등', '하체', '어깨', '이두', '삼두', '유산소', '기타']
-
-const initialExercises = [
-  { id: 1, name: '벤치프레스', category: '가슴', isUserExercise: false, isActive: true },
-  { id: 2, name: '인클라인 벤치프레스', category: '가슴', isUserExercise: false, isActive: true },
-  { id: 3, name: '체스트프레스', category: '가슴', isUserExercise: false, isActive: true },
-  { id: 4, name: '머신 체스트프레스', category: '가슴', isUserExercise: true, isActive: true },
-  { id: 5, name: '케이블 플라이', category: '가슴', isUserExercise: true, isActive: true },
-  { id: 6, name: '펙덱', category: '가슴', isUserExercise: false, isActive: true },
-  { id: 7, name: '덤벨 풀오버', category: '가슴', isUserExercise: true, isActive: true },
+const categories = [
+  { label: '전체', value: '' },
+  { label: '가슴', value: 'CHEST' },
+  { label: '등', value: 'BACK' },
+  { label: '하체', value: 'LEGS' },
+  { label: '어깨', value: 'SHOULDER' },
+  { label: '이두', value: 'BICEPS' },
+  { label: '삼두', value: 'TRICEPS' },
+  { label: '유산소', value: 'CARDIO' },
+  { label: '기타', value: 'ETC' },
 ]
 
 const navItems = ['오늘', '기록', '루틴', '운동']
 
 function ExerciseManagementPage() {
-  const [exercises, setExercises] = useState(initialExercises)
+  const [exercises, setExercises] = useState([])
   const [searchText, setSearchText] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('전체')
+  const [selectedCategory, setSelectedCategory] = useState('')
   const [editingExercise, setEditingExercise] = useState(undefined)
   const [exerciseToDisable, setExerciseToDisable] = useState(null)
-  const [form, setForm] = useState({ name: '', category: '가슴' })
+  const [form, setForm] = useState({ name: '', category: 'CHEST' })
+  const [errorMessage, setErrorMessage] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    let ignore = false
+
+    async function loadExercises() {
+      setIsLoading(true)
+      setErrorMessage('')
+
+      try {
+        const query = selectedCategory ? `?category=${selectedCategory}` : ''
+        const response = await fetch(`/api/exercises${query}`)
+
+        if (!response.ok) {
+          throw new Error('운동 목록을 불러오지 못했습니다.')
+        }
+
+        const data = await response.json()
+        if (!ignore) {
+          setExercises(data)
+        }
+      } catch (error) {
+        if (!ignore) {
+          setErrorMessage(error.message)
+        }
+      } finally {
+        if (!ignore) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    loadExercises()
+
+    return () => {
+      ignore = true
+    }
+  }, [selectedCategory])
 
   const filteredExercises = useMemo(() => {
     const keyword = searchText.trim()
 
     return exercises.filter((exercise) => {
-      if (!exercise.isActive) return false
-      if (selectedCategory !== '전체' && exercise.category !== selectedCategory) return false
+      if (!exercise.active) return false
       return !keyword || exercise.name.includes(keyword)
     })
-  }, [exercises, searchText, selectedCategory])
+  }, [exercises, searchText])
+
+  async function reloadExercises() {
+    const query = selectedCategory ? `?category=${selectedCategory}` : ''
+    const response = await fetch(`/api/exercises${query}`)
+
+    if (!response.ok) {
+      throw new Error('운동 목록을 불러오지 못했습니다.')
+    }
+
+    setExercises(await response.json())
+  }
 
   function openAddSheet() {
     setEditingExercise(null)
-    setForm({ name: '', category: '가슴' })
+    setForm({ name: '', category: 'CHEST' })
   }
 
   function openEditSheet(exercise) {
-    if (!exercise.isUserExercise) return
+    if (exercise.type !== 'CUSTOM') return
     setEditingExercise(exercise)
     setForm({ name: exercise.name, category: exercise.category })
   }
 
   function closeSheet() {
     setEditingExercise(undefined)
-    setForm({ name: '', category: '가슴' })
+    setForm({ name: '', category: 'CHEST' })
   }
 
-  function saveExercise(event) {
+  async function saveExercise(event) {
     event.preventDefault()
 
     const name = form.name.trim()
     if (!name) return
 
-    if (editingExercise) {
-      setExercises((items) =>
-        items.map((item) =>
-          item.id === editingExercise.id ? { ...item, name, category: form.category } : item,
-        ),
-      )
-    } else {
-      setExercises((items) => [
-        ...items,
-        {
-          id: Date.now(),
-          name,
-          category: form.category,
-          isUserExercise: true,
-          isActive: true,
-        },
-      ])
-    }
+    const url = editingExercise ? `/api/exercises/${editingExercise.id}` : '/api/exercises'
+    try {
+      const response = await fetch(url, {
+        method: editingExercise ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, category: form.category }),
+      })
 
-    closeSheet()
+      if (!response.ok) {
+        throw new Error('운동을 저장하지 못했습니다.')
+      }
+
+      await reloadExercises()
+      closeSheet()
+    } catch {
+      setErrorMessage('운동을 저장하지 못했습니다.')
+    }
   }
 
-  function confirmDisable() {
-    if (!exerciseToDisable?.isUserExercise) return
+  async function confirmDisable() {
+    if (exerciseToDisable?.type !== 'CUSTOM') return
 
-    setExercises((items) =>
-      items.map((item) => (item.id === exerciseToDisable.id ? { ...item, isActive: false } : item)),
-    )
-    setExerciseToDisable(null)
+    try {
+      const response = await fetch(`/api/exercises/${exerciseToDisable.id}/inactive`, {
+        method: 'PATCH',
+      })
+
+      if (!response.ok) {
+        throw new Error('운동을 비활성화하지 못했습니다.')
+      }
+
+      await reloadExercises()
+      setExerciseToDisable(null)
+    } catch {
+      setErrorMessage('운동을 비활성화하지 못했습니다.')
+    }
   }
 
   const isSheetOpen = editingExercise !== undefined
@@ -113,24 +169,26 @@ function ExerciseManagementPage() {
         {categories.map((category) => (
           <button
             type="button"
-            className={category === selectedCategory ? 'active' : ''}
-            aria-pressed={category === selectedCategory}
-            key={category}
-            onClick={() => setSelectedCategory(category)}
+            className={category.value === selectedCategory ? 'active' : ''}
+            aria-pressed={category.value === selectedCategory}
+            key={category.value || 'ALL'}
+            onClick={() => setSelectedCategory(category.value)}
           >
-            {category}
+            {category.label}
           </button>
         ))}
       </nav>
 
       <section className="exercise-list" aria-label="운동 목록">
+        {errorMessage && <p className="error-message">{errorMessage}</p>}
+        {isLoading && <p className="empty-message">운동 목록을 불러오는 중입니다.</p>}
         {filteredExercises.map((exercise) => (
           <article className="exercise-card" key={exercise.id}>
             <div>
               <h2>{exercise.name}</h2>
-              <p>{exercise.category}</p>
+              <p>{categories.find((category) => category.value === exercise.category)?.label ?? exercise.category}</p>
             </div>
-            {exercise.isUserExercise && (
+            {exercise.type === 'CUSTOM' && (
               <div className="exercise-actions" aria-label={`${exercise.name} 관리`}>
                 <button type="button" onClick={() => openEditSheet(exercise)}>
                   수정
@@ -142,7 +200,7 @@ function ExerciseManagementPage() {
             )}
           </article>
         ))}
-        {filteredExercises.length === 0 && <p className="empty-message">표시할 운동이 없습니다.</p>}
+        {!isLoading && filteredExercises.length === 0 && <p className="empty-message">표시할 운동이 없습니다.</p>}
       </section>
 
       <nav className="bottom-nav" aria-label="하단 메뉴">
@@ -186,10 +244,10 @@ function ExerciseManagementPage() {
                   onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))}
                 >
                   {categories
-                    .filter((category) => category !== '전체')
+                    .filter((category) => category.value)
                     .map((category) => (
-                      <option value={category} key={category}>
-                        {category}
+                      <option value={category.value} key={category.value}>
+                        {category.label}
                       </option>
                     ))}
                 </select>
