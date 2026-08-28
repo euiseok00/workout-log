@@ -1,0 +1,53 @@
+package com.workoutlog.backend.common;
+
+import java.util.stream.Collectors;
+
+import com.workoutlog.backend.exercise.ExerciseNotFoundException;
+import com.workoutlog.backend.exercise.ExerciseOperationException;
+import jakarta.validation.ConstraintViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+	@ExceptionHandler(ExerciseNotFoundException.class)
+	public ResponseEntity<ApiErrorResponse> handleNotFound(ExerciseNotFoundException exception) {
+		return ResponseEntity
+			.status(HttpStatus.NOT_FOUND)
+			.body(new ApiErrorResponse("EXERCISE_NOT_FOUND", exception.getMessage()));
+	}
+
+	@ExceptionHandler(ExerciseOperationException.class)
+	public ResponseEntity<ApiErrorResponse> handleExerciseOperation(ExerciseOperationException exception) {
+		return ResponseEntity
+			.status(HttpStatus.BAD_REQUEST)
+			.body(new ApiErrorResponse("INVALID_EXERCISE_OPERATION", exception.getMessage()));
+	}
+
+	@ExceptionHandler(MethodArgumentNotValidException.class)
+	public ResponseEntity<ApiErrorResponse> handleValidation(MethodArgumentNotValidException exception) {
+		String message = exception.getBindingResult()
+			.getFieldErrors()
+			.stream()
+			.map(error -> error.getField() + " " + error.getDefaultMessage())
+			.collect(Collectors.joining(", "));
+
+		return ResponseEntity
+			.badRequest()
+			.body(new ApiErrorResponse("VALIDATION_ERROR", message));
+	}
+
+	@ExceptionHandler({
+		ConstraintViolationException.class,
+		MethodArgumentTypeMismatchException.class
+	})
+	public ResponseEntity<ApiErrorResponse> handleBadRequest(Exception exception) {
+		return ResponseEntity
+			.badRequest()
+			.body(new ApiErrorResponse("BAD_REQUEST", exception.getMessage()));
+	}
+}
