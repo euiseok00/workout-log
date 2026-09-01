@@ -1,0 +1,114 @@
+package com.workoutlog.backend.routine.service;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import com.workoutlog.backend.exercise.Exercise;
+import com.workoutlog.backend.exercise.ExerciseNotFoundException;
+import com.workoutlog.backend.exercise.repository.ExerciseRepository;
+import com.workoutlog.backend.routine.RoutineOperationException;
+import com.workoutlog.backend.routine.RoutineSummary;
+import com.workoutlog.backend.routine.dto.RoutineCreateRequest.RoutineExerciseRequest;
+import com.workoutlog.backend.routine.dto.RoutineCreateRequest.RoutineSetRequest;
+import com.workoutlog.backend.routine.repository.RoutineRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class RoutineService {
+	private final RoutineRepository routineRepository;
+	private final ExerciseRepository exerciseRepository;
+
+	public RoutineService(RoutineRepository routineRepository, ExerciseRepository exerciseRepository) {
+		this.routineRepository = routineRepository;
+		this.exerciseRepository = exerciseRepository;
+	}
+
+	@Transactional(readOnly = true)
+	public List<RoutineSummary> findRoutines() {
+		return routineRepository.findAll();
+	}
+
+	@Transactional
+	public RoutineSummary createRoutine(
+		String routineName,
+		String routineMemo,
+		List<RoutineExerciseRequest> routineExercises
+	) {
+		List<ExerciseWithOrder> exercises = validateRoutineExercises(routineExercises);
+		Integer routineId = routineRepository.saveRoutine(routineName, routineMemo);
+
+		for (RoutineExerciseRequest routineExercise : routineExercises) {
+			Integer routineExerciseId = routineRepository.saveRoutineExercise(
+				routineId,
+				routineExercise.exerciseId(),
+				routineExercise.exerciseOrder(),
+				routineExercise.memo()
+			);
+
+			for (RoutineSetRequest set : routineExercise.sets()) {
+				routineRepository.saveRoutineSet(
+					routineExerciseId,
+					set.setOrder(),
+					set.weight(),
+					set.reps(),
+					set.setType()
+				);
+			}
+		}
+
+		return new RoutineSummary(
+			routineId,
+			routineName,
+			routineMemo,
+			exercises.stream()
+				.sorted(Comparator.comparing(ExerciseWithOrder::exerciseOrder))
+				.map(ExerciseWithOrder::exercise)
+				.map(Exercise::name)
+				.toList()
+		);
+	}
+
+	private List<ExerciseWithOrder> validateRoutineExercises(List<RoutineExerciseRequest> routineExercises) {
+		Set<Integer> exerciseOrders = new HashSet<>();
+		List<ExerciseWithOrder> exercises = new ArrayList<>();
+
+		for (RoutineExerciseRequest routineExercise : routineExercises) {
+			if (!exerciseOrders.add(routineExercise.exerciseOrder())) {
+				throw new RoutineOperationException("Exercise order cannot be duplicated in a routine.");
+			}
+
+			validateSetOrders(routineExercise.sets());
+
+			Exercise exercise = exerciseRepository.findById(routineExercise.exerciseId())
+				.orElseThrow(() -> new ExerciseNotFoundException(routineExercise.exerciseId()));
+
+			if (!exercise.active()) {
+				throw new RoutineOperationException("Inactive exercises cannot be added to routines.");
+			}
+
+			exercises.add(new ExerciseWithOrder(exercise, routineExercise.exerciseOrder()));
+		}
+
+		return exercises;
+	}
+
+	private void validateSetOrders(List<RoutineSetRequest> sets) {
+		Set<Integer> setOrders = new HashSet<>();
+
+		for (RoutineSetRequest set : sets) {
+			if (!setOrders.add(set.setOrder())) {
+				throw new RoutineOperationException("Set order cannot be duplicated in an exercise.");
+			}
+		}
+	}
+
+	private record ExerciseWithOrder(
+		Exercise exercise,
+		Integer exerciseOrder
+	) {
+	}
+}

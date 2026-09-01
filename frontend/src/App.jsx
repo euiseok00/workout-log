@@ -1,8 +1,8 @@
-import ExerciseManagementPage from './pages/ExerciseManagementPage.jsx'
+import RoutineManagementPage from './pages/RoutineManagementPage.jsx'
 import './App.css'
 
 function App() {
-  return <ExerciseManagementPage />
+  return <RoutineManagementPage />
 }
 
 export default App

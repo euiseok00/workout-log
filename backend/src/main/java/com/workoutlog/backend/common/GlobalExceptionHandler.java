@@ -4,9 +4,11 @@ import java.util.stream.Collectors;
 
 import com.workoutlog.backend.exercise.ExerciseNotFoundException;
 import com.workoutlog.backend.exercise.ExerciseOperationException;
+import com.workoutlog.backend.routine.RoutineOperationException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -28,6 +30,13 @@ public class GlobalExceptionHandler {
 			.body(new ApiErrorResponse("INVALID_EXERCISE_OPERATION", exception.getMessage()));
 	}
 
+	@ExceptionHandler(RoutineOperationException.class)
+	public ResponseEntity<ApiErrorResponse> handleRoutineOperation(RoutineOperationException exception) {
+		return ResponseEntity
+			.status(HttpStatus.BAD_REQUEST)
+			.body(new ApiErrorResponse("INVALID_ROUTINE_OPERATION", exception.getMessage()));
+	}
+
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	public ResponseEntity<ApiErrorResponse> handleValidation(MethodArgumentNotValidException exception) {
 		String message = exception.getBindingResult()
@@ -43,6 +52,7 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler({
 		ConstraintViolationException.class,
+		HttpMessageNotReadableException.class,
 		MethodArgumentTypeMismatchException.class
 	})
 	public ResponseEntity<ApiErrorResponse> handleBadRequest(Exception exception) {

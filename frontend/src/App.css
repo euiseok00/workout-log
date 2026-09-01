@@ -30,9 +30,13 @@
 }
 
 .add-button,
+.ghost-button,
 .exercise-actions button,
 .sheet-header button,
 .exercise-form button,
+.routine-builder button,
+.exercise-picker-list button,
+.set-remove-button,
 .confirm-actions button,
 .bottom-nav button,
 .category-tabs button {
@@ -47,6 +51,18 @@
   border-radius: 6px;
   background: #111;
   color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.ghost-button {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid #c8c8c8;
+  border-radius: 6px;
+  background: #fff;
+  color: #111;
   font-size: 14px;
   font-weight: 700;
 }
@@ -135,6 +151,22 @@
   font-weight: 700;
 }
 
+.routine-card {
+  min-height: 74px;
+}
+
+.routine-card-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.routine-card-title span {
+  color: #777;
+  font-size: 12px;
+  font-weight: 900;
+}
+
 .exercise-actions {
   display: flex;
   flex: 0 0 auto;
@@ -172,6 +204,331 @@
   font-weight: 800;
 }
 
+.success-message {
+  margin: 0;
+  color: #111;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.routine-builder {
+  display: grid;
+  gap: 14px;
+}
+
+.routine-section {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #d0d0d0;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 3%);
+}
+
+.routine-section label {
+  display: grid;
+  gap: 7px;
+  color: #444;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.routine-section input,
+.routine-section select,
+.routine-section textarea,
+.set-grid input,
+.set-grid select {
+  width: 100%;
+  border: 1px solid #c8c8c8;
+  border-radius: 6px;
+  background: #fff;
+  color: #111;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+}
+
+.routine-section input,
+.routine-section select,
+.set-grid input,
+.set-grid select {
+  height: 42px;
+}
+
+.routine-section textarea {
+  min-height: 72px;
+  padding-block: 10px;
+  resize: vertical;
+}
+
+.routine-section input:focus,
+.routine-section select:focus,
+.routine-section textarea:focus,
+.set-grid input:focus,
+.set-grid select:focus {
+  border-color: #111;
+}
+
+.section-header,
+.routine-exercise-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.section-header h2 {
+  margin: 0;
+  color: #111;
+  font-size: 18px;
+  line-height: 1.25;
+  font-weight: 800;
+}
+
+.section-header button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid #111;
+  border-radius: 6px;
+  background: #111;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.routine-exercises {
+  display: grid;
+  gap: 10px;
+}
+
+.routine-exercise-card {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #d0d0d0;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.routine-exercise-top > div:first-child {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 8px;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.routine-exercise-top span {
+  color: #777;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.routine-exercise-top h3 {
+  margin: 0;
+  color: #111;
+  font-size: 16px;
+  line-height: 1.25;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.routine-exercise-top p {
+  grid-column: 2;
+  margin: 2px 0 0;
+  color: #666;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.routine-exercise-names {
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}
+
+.order-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+.order-actions button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #c8c8c8;
+  border-radius: 5px;
+  background: #fff;
+  color: #111;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.order-actions button:last-child {
+  color: #c62828;
+}
+
+.order-actions button:disabled {
+  color: #b8b8b8;
+  background: #f3f3f3;
+}
+
+.target-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.target-grid label {
+  gap: 5px;
+  font-size: 12px;
+}
+
+.target-grid input {
+  height: 38px;
+  padding: 0 8px;
+}
+
+.exercise-memo {
+  display: grid;
+  gap: 5px;
+  color: #444;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.exercise-memo textarea {
+  width: 100%;
+  min-height: 58px;
+  border: 1px solid #c8c8c8;
+  border-radius: 6px;
+  background: #fff;
+  color: #111;
+  padding: 9px 10px;
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+  resize: vertical;
+}
+
+.exercise-memo textarea:focus {
+  border-color: #111;
+}
+
+.routine-sets {
+  display: grid;
+  gap: 8px;
+}
+
+.routine-set-card {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.routine-set-card h4 {
+  margin: 0;
+  color: #111;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.routine-set-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.set-remove-button {
+  min-height: 28px;
+  padding: 0 8px;
+  border: 1px solid #f0caca;
+  border-radius: 5px;
+  background: #fff;
+  color: #c62828;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.set-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.set-grid label {
+  display: grid;
+  gap: 5px;
+  color: #444;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.set-grid input,
+.set-grid select {
+  padding-inline: 8px;
+  font-size: 14px;
+}
+
+.set-add-button {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid #c8c8c8;
+  border-radius: 6px;
+  background: #fff;
+  color: #111;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.routine-save-button {
+  width: 100%;
+}
+
+.exercise-picker-list {
+  display: grid;
+  gap: 8px;
+}
+
+.exercise-picker-list button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  background: #fff;
+  color: #111;
+  padding: 0 12px;
+  text-align: left;
+}
+
+.exercise-picker-list span {
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.exercise-picker-list small {
+  color: #666;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.exercise-picker-list button:disabled {
+  color: #777;
+  background: #f3f3f3;
+}
+
 .sheet-backdrop {
   position: fixed;
   inset: 0;
@@ -186,10 +543,20 @@
 .confirm-sheet {
   width: 100%;
   max-width: 720px;
+  max-height: 86svh;
+  overflow-y: auto;
   border-radius: 8px 8px 0 0;
   background: #fff;
   padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
   box-shadow: 0 -8px 24px rgb(0 0 0 / 12%);
+}
+
+.sheet-search {
+  margin-bottom: 12px;
+}
+
+.sheet-tabs {
+  margin-bottom: 12px;
 }
 
 .sheet-header {
@@ -257,6 +624,11 @@
   color: #fff;
   font-size: 15px;
   font-weight: 800;
+}
+
+.primary-action:disabled {
+  border-color: #9ca3af;
+  background: #9ca3af;
 }
 
 .confirm-sheet p {

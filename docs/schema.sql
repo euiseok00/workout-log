@@ -34,7 +34,8 @@ CREATE TABLE exercises (
 
 CREATE TABLE routines (
     routine_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    routine_name VARCHAR(50) NOT NULL
+    routine_name VARCHAR(50) NOT NULL,
+    routine_memo TEXT
 );
 
 
@@ -47,6 +48,7 @@ CREATE TABLE routine_exercises (
     routine_id INTEGER NOT NULL,
     exercise_id INTEGER NOT NULL,
     exercise_order INTEGER NOT NULL,
+    memo TEXT,
 
     FOREIGN KEY (routine_id)
         REFERENCES routines(routine_id)

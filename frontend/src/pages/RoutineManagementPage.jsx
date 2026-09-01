@@ -1,0 +1,493 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
+const categories = [
+  { label: '전체', value: '' },
+  { label: '가슴', value: 'CHEST' },
+  { label: '등', value: 'BACK' },
+  { label: '하체', value: 'LEGS' },
+  { label: '어깨', value: 'SHOULDER' },
+  { label: '이두', value: 'BICEPS' },
+  { label: '삼두', value: 'TRICEPS' },
+  { label: '유산소', value: 'CARDIO' },
+  { label: '기타', value: 'ETC' },
+]
+
+const setTypes = [
+  { label: '웜업', value: 'WARMUP' },
+  { label: '본세트', value: 'WORKING' },
+  { label: '탑세트', value: 'TOP' },
+  { label: '실패', value: 'FAILURE' },
+]
+
+const navItems = ['오늘', '기록', '루틴', '운동']
+
+function categoryLabel(value) {
+  return categories.find((category) => category.value === value)?.label ?? value
+}
+
+function RoutineManagementPage() {
+  const [routines, setRoutines] = useState([])
+  const [availableExercises, setAvailableExercises] = useState([])
+  const [mode, setMode] = useState('list')
+  const [isExerciseSheetOpen, setIsExerciseSheetOpen] = useState(false)
+  const [routineName, setRoutineName] = useState('')
+  const [routineMemo, setRoutineMemo] = useState('')
+  const [exerciseSearchText, setExerciseSearchText] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('')
+  const [selectedExercises, setSelectedExercises] = useState([])
+  const [isRoutineLoading, setIsRoutineLoading] = useState(false)
+  const [isExerciseLoading, setIsExerciseLoading] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [listErrorMessage, setListErrorMessage] = useState('')
+  const [formMessage, setFormMessage] = useState('')
+  const savingRef = useRef(false)
+
+  const loadRoutines = useCallback(async () => {
+    setIsRoutineLoading(true)
+    setListErrorMessage('')
+
+    try {
+      const response = await fetch('/api/routines')
+      if (!response.ok) throw new Error()
+      setRoutines(await response.json())
+    } catch {
+      setListErrorMessage('루틴 목록을 불러오지 못했습니다.')
+    } finally {
+      setIsRoutineLoading(false)
+    }
+  }, [])
+
+  const loadExercises = useCallback(async () => {
+    setIsExerciseLoading(true)
+    setFormMessage('')
+
+    try {
+      const query = selectedCategory ? `?category=${selectedCategory}` : ''
+      const response = await fetch(`/api/exercises${query}`)
+      if (!response.ok) throw new Error()
+      setAvailableExercises(await response.json())
+    } catch {
+      setFormMessage('운동 목록을 불러오지 못했습니다.')
+    } finally {
+      setIsExerciseLoading(false)
+    }
+  }, [selectedCategory])
+
+  useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
+    void loadRoutines()
+  }, [loadRoutines])
+
+  useEffect(() => {
+    if (isExerciseSheetOpen) {
+      // oxlint-disable-next-line react/set-state-in-effect
+      void loadExercises()
+    }
+  }, [isExerciseSheetOpen, loadExercises])
+
+  const selectedExerciseIds = useMemo(
+    () => new Set(selectedExercises.map((exercise) => exercise.id)),
+    [selectedExercises],
+  )
+
+  const filteredExercises = useMemo(() => {
+    const keyword = exerciseSearchText.trim()
+
+    return availableExercises.filter((exercise) => {
+      if (!exercise.active) return false
+      return !keyword || exercise.name.includes(keyword)
+    })
+  }, [availableExercises, exerciseSearchText])
+
+  function addExercise(exercise) {
+    if (selectedExerciseIds.has(exercise.id)) return
+
+    setSelectedExercises((items) => [
+      ...items,
+      {
+        id: exercise.id,
+        name: exercise.name,
+        category: exercise.category,
+        memo: '',
+        sets: [{ weight: 0, reps: 10, setType: 'WORKING' }],
+      },
+    ])
+  }
+
+  function addSet(exerciseIndex) {
+    setSelectedExercises((items) =>
+      items.map((exercise, index) =>
+        index === exerciseIndex
+          ? { ...exercise, sets: [...exercise.sets, { weight: 0, reps: 10, setType: 'WORKING' }] }
+          : exercise,
+      ),
+    )
+  }
+
+  function removeSet(exerciseIndex, setIndex) {
+    setSelectedExercises((items) =>
+      items.map((exercise, currentIndex) => {
+        if (currentIndex !== exerciseIndex || exercise.sets.length === 1) return exercise
+
+        return {
+          ...exercise,
+          sets: exercise.sets.filter((_, currentSetIndex) => currentSetIndex !== setIndex),
+        }
+      }),
+    )
+  }
+
+  function moveExercise(index, direction) {
+    const nextIndex = index + direction
+    if (nextIndex < 0 || nextIndex >= selectedExercises.length) return
+
+    setSelectedExercises((items) => {
+      const next = [...items]
+      const current = next[index]
+      next[index] = next[nextIndex]
+      next[nextIndex] = current
+      return next
+    })
+  }
+
+  function updateExerciseMemo(index, value) {
+    setSelectedExercises((items) =>
+      items.map((exercise, currentIndex) => (currentIndex === index ? { ...exercise, memo: value } : exercise)),
+    )
+  }
+
+  function updateSet(exerciseIndex, setIndex, field, value) {
+    setSelectedExercises((items) =>
+      items.map((exercise, currentIndex) => {
+        if (currentIndex !== exerciseIndex) return exercise
+
+        return {
+          ...exercise,
+          sets: exercise.sets.map((set, currentSetIndex) =>
+            currentSetIndex === setIndex ? { ...set, [field]: value } : set,
+          ),
+        }
+      }),
+    )
+  }
+
+  function removeExercise(index) {
+    setSelectedExercises((items) => items.filter((_, currentIndex) => currentIndex !== index))
+  }
+
+  function resetForm() {
+    setRoutineName('')
+    setRoutineMemo('')
+    setSelectedExercises([])
+    setFormMessage('')
+  }
+
+  function openCreateMode() {
+    setFormMessage('')
+    setMode('create')
+  }
+
+  async function saveRoutine(event) {
+    event.preventDefault()
+
+    if (savingRef.current) return
+
+    const name = routineName.trim()
+    if (!name) {
+      setFormMessage('루틴 이름을 입력해주세요.')
+      return
+    }
+    if (selectedExercises.length === 0) {
+      setFormMessage('운동을 1개 이상 추가해주세요.')
+      return
+    }
+
+    savingRef.current = true
+    setIsSaving(true)
+    setFormMessage('')
+
+    const payload = {
+      routineName: name,
+      routineMemo: routineMemo.trim(),
+      exercises: selectedExercises.map((exercise, exerciseIndex) => ({
+        exerciseId: exercise.id,
+        exerciseOrder: exerciseIndex + 1,
+        memo: exercise.memo.trim(),
+        sets: exercise.sets.map((set, setIndex) => ({
+          setOrder: setIndex + 1,
+          weight: Number(set.weight),
+          reps: Number(set.reps),
+          setType: set.setType,
+        })),
+      })),
+    }
+
+    try {
+      const response = await fetch('/api/routines', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) throw new Error()
+
+      resetForm()
+      setMode('list')
+      setFormMessage('루틴을 저장했습니다.')
+      await loadRoutines()
+    } catch {
+      setFormMessage('루틴을 저장하지 못했습니다.')
+    } finally {
+      savingRef.current = false
+      setIsSaving(false)
+    }
+  }
+
+  return (
+    <main className="exercise-page">
+      <header className="page-header">
+        <div>
+          <p className="eyebrow">ROUTINES</p>
+          <h1>{mode === 'list' ? '루틴' : '새 루틴'}</h1>
+        </div>
+        {mode === 'list' ? (
+          <button type="button" className="add-button" onClick={openCreateMode}>
+            루틴 생성
+          </button>
+        ) : (
+          <button type="button" className="ghost-button" onClick={() => setMode('list')}>
+            목록
+          </button>
+        )}
+      </header>
+
+      {mode === 'list' ? (
+        <section className="exercise-list" aria-label="루틴 목록">
+          {formMessage && <p className="success-message">{formMessage}</p>}
+          {listErrorMessage && <p className="error-message">{listErrorMessage}</p>}
+          {isRoutineLoading && <p className="empty-message">루틴 목록을 불러오는 중입니다.</p>}
+          {!isRoutineLoading &&
+            routines.map((routine) => (
+              <article className="exercise-card routine-card" key={routine.routineId}>
+                <div>
+                  <div className="routine-card-title">
+                    <h2>{routine.routineName}</h2>
+                    <span>#{routine.routineId}</span>
+                  </div>
+                  <p>{routine.routineMemo || '메모 없음'}</p>
+                  <p className="routine-exercise-names">
+                    {routine.exerciseCount}개 운동 · {routine.exercises.join(', ')}
+                  </p>
+                </div>
+              </article>
+            ))}
+          {!isRoutineLoading && !listErrorMessage && routines.length === 0 && (
+            <p className="empty-message">저장된 루틴이 없습니다.</p>
+          )}
+        </section>
+      ) : (
+        <form className="routine-builder" onSubmit={saveRoutine}>
+          {formMessage && <p className="error-message">{formMessage}</p>}
+          <section className="routine-section" aria-label="루틴 기본 정보">
+            <label>
+              루틴 이름
+              <input
+                type="text"
+                value={routineName}
+                placeholder="예: 월요일 상체"
+                onChange={(event) => setRoutineName(event.target.value)}
+              />
+            </label>
+            <label>
+              메모
+              <textarea
+                value={routineMemo}
+                placeholder="루틴 메모"
+                onChange={(event) => setRoutineMemo(event.target.value)}
+              />
+            </label>
+          </section>
+
+          <section className="routine-section" aria-label="루틴 운동">
+            <div className="section-header">
+              <h2>운동</h2>
+              <button type="button" onClick={() => setIsExerciseSheetOpen(true)}>
+                운동 추가
+              </button>
+            </div>
+
+            <div className="routine-exercises">
+              {selectedExercises.map((exercise, exerciseIndex) => (
+                <article className="routine-exercise-card" key={exercise.id}>
+                  <div className="routine-exercise-top">
+                    <div>
+                      <span>{exerciseIndex + 1}</span>
+                      <h3>{exercise.name}</h3>
+                      <p>{categoryLabel(exercise.category)}</p>
+                    </div>
+                    <div className="order-actions" aria-label={`${exercise.name} 순서 변경`}>
+                      <button type="button" onClick={() => moveExercise(exerciseIndex, -1)} disabled={exerciseIndex === 0}>
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveExercise(exerciseIndex, 1)}
+                        disabled={exerciseIndex === selectedExercises.length - 1}
+                      >
+                        ↓
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeExercise(exerciseIndex)}
+                        aria-label={`${exercise.name} 삭제`}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+
+                  <label className="exercise-memo">
+                    메모
+                    <textarea
+                      value={exercise.memo}
+                      placeholder="운동 메모"
+                      onChange={(event) => updateExerciseMemo(exerciseIndex, event.target.value)}
+                    />
+                  </label>
+
+                  <div className="routine-sets">
+                    {exercise.sets.map((set, setIndex) => (
+                      <article className="routine-set-card" key={setIndex}>
+                        <div className="routine-set-header">
+                          <h4>{setIndex + 1}세트</h4>
+                          {exercise.sets.length > 1 && (
+                            <button
+                              type="button"
+                              className="set-remove-button"
+                              onClick={() => removeSet(exerciseIndex, setIndex)}
+                            >
+                              삭제
+                            </button>
+                          )}
+                        </div>
+                        <div className="set-grid">
+                          <label>
+                            중량
+                            <input
+                              type="number"
+                              min="0"
+                              value={set.weight}
+                              onChange={(event) => updateSet(exerciseIndex, setIndex, 'weight', event.target.value)}
+                            />
+                          </label>
+                          <label>
+                            횟수
+                            <input
+                              type="number"
+                              min="0"
+                              value={set.reps}
+                              onChange={(event) => updateSet(exerciseIndex, setIndex, 'reps', event.target.value)}
+                            />
+                          </label>
+                          <label>
+                            유형
+                            <select
+                              value={set.setType}
+                              onChange={(event) => updateSet(exerciseIndex, setIndex, 'setType', event.target.value)}
+                            >
+                              {setTypes.map((setType) => (
+                                <option value={setType.value} key={setType.value}>
+                                  {setType.label}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+                      </article>
+                    ))}
+                    <button type="button" className="set-add-button" onClick={() => addSet(exerciseIndex)}>
+                      세트 추가
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <button type="submit" className="primary-action routine-save-button" disabled={isSaving}>
+            {isSaving ? '저장 중' : '루틴 저장'}
+          </button>
+        </form>
+      )}
+
+      <nav className="bottom-nav" aria-label="하단 메뉴">
+        {navItems.map((item) => (
+          <button type="button" className={item === '루틴' ? 'active' : ''} key={item}>
+            {item}
+          </button>
+        ))}
+      </nav>
+
+      {isExerciseSheetOpen && (
+        <div className="sheet-backdrop" role="presentation" onClick={() => setIsExerciseSheetOpen(false)}>
+          <section
+            className="bottom-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="exercise-picker-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="sheet-header">
+              <h2 id="exercise-picker-title">운동 추가</h2>
+              <button type="button" onClick={() => setIsExerciseSheetOpen(false)}>
+                닫기
+              </button>
+            </div>
+            <section className="search-section sheet-search" aria-label="운동 검색">
+              <input
+                type="search"
+                value={exerciseSearchText}
+                placeholder="운동 이름 검색"
+                onChange={(event) => setExerciseSearchText(event.target.value)}
+              />
+            </section>
+            <nav className="category-tabs sheet-tabs" aria-label="운동 카테고리">
+              {categories.map((category) => (
+                <button
+                  type="button"
+                  className={category.value === selectedCategory ? 'active' : ''}
+                  aria-pressed={category.value === selectedCategory}
+                  key={category.value || 'ALL'}
+                  onClick={() => setSelectedCategory(category.value)}
+                >
+                  {category.label}
+                </button>
+              ))}
+            </nav>
+            <div className="exercise-picker-list">
+              {formMessage && <p className="error-message">{formMessage}</p>}
+              {isExerciseLoading && <p className="empty-message">운동 목록을 불러오는 중입니다.</p>}
+              {!isExerciseLoading &&
+                filteredExercises.map((exercise) => (
+                  <button
+                    type="button"
+                    disabled={selectedExerciseIds.has(exercise.id)}
+                    key={exercise.id}
+                    onClick={() => addExercise(exercise)}
+                  >
+                    <span>{exercise.name}</span>
+                    <small>{selectedExerciseIds.has(exercise.id) ? '추가됨' : categoryLabel(exercise.category)}</small>
+                  </button>
+                ))}
+              {!isExerciseLoading && filteredExercises.length === 0 && (
+                <p className="empty-message">표시할 운동이 없습니다.</p>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
+    </main>
+  )
+}
+
+export default RoutineManagementPage
