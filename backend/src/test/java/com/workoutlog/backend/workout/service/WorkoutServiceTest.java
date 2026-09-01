@@ -25,6 +25,7 @@ import com.workoutlog.backend.routine.repository.RoutineRepository;
 import com.workoutlog.backend.workout.WorkoutOperationException;
 import com.workoutlog.backend.workout.WorkoutResponse;
 import com.workoutlog.backend.workout.WorkoutSetType;
+import com.workoutlog.backend.workout.WorkoutSummaryResponse;
 import com.workoutlog.backend.workout.dto.WorkoutCreateRequest.WorkoutExerciseRequest;
 import com.workoutlog.backend.workout.dto.WorkoutCreateRequest.WorkoutSetRequest;
 import com.workoutlog.backend.workout.repository.WorkoutRepository;
@@ -219,6 +220,36 @@ class WorkoutServiceTest {
 		);
 
 		verify(workoutRepository, never()).saveWorkout(WORKOUT_DATE, 1, null);
+	}
+
+	@Test
+	void findWorkoutDatesUsesMonthRange() {
+		List<LocalDate> dates = List.of(
+			LocalDate.of(2026, 9, 1),
+			LocalDate.of(2026, 9, 5)
+		);
+		when(workoutRepository.findWorkoutDates(
+			LocalDate.of(2026, 9, 1),
+			LocalDate.of(2026, 10, 1)
+		)).thenReturn(dates);
+
+		assertEquals(dates, workoutService.findWorkoutDates(2026, 9));
+	}
+
+	@Test
+	void findWorkoutSummariesByDateReturnsRepositoryResult() {
+		List<WorkoutSummaryResponse> summaries = List.of(new WorkoutSummaryResponse(
+			10,
+			WORKOUT_DATE,
+			1,
+			"가슴 운동",
+			4,
+			14
+		));
+		when(workoutRepository.findSummariesByDate(WORKOUT_DATE))
+			.thenReturn(summaries);
+
+		assertEquals(summaries, workoutService.findWorkoutSummariesByDate(WORKOUT_DATE));
 	}
 
 	private WorkoutExerciseRequest exercise(Integer exerciseId, Integer exerciseOrder) {

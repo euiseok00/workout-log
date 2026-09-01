@@ -21,6 +21,7 @@ import com.workoutlog.backend.workout.WorkoutOperationException;
 import com.workoutlog.backend.workout.WorkoutResponse;
 import com.workoutlog.backend.workout.WorkoutSetResponse;
 import com.workoutlog.backend.workout.WorkoutSetType;
+import com.workoutlog.backend.workout.WorkoutSummaryResponse;
 import com.workoutlog.backend.workout.dto.WorkoutCreateRequest.WorkoutExerciseRequest;
 import com.workoutlog.backend.workout.dto.WorkoutCreateRequest.WorkoutSetRequest;
 import com.workoutlog.backend.workout.repository.WorkoutRepository;
@@ -155,6 +156,19 @@ public class WorkoutService {
 	public WorkoutResponse findWorkout(Integer workoutId) {
 		return workoutRepository.findById(workoutId)
 			.orElseThrow(() -> new WorkoutNotFoundException(workoutId));
+	}
+
+	@Transactional(readOnly = true)
+	public List<LocalDate> findWorkoutDates(Integer year, Integer month) {
+		LocalDate startDate = LocalDate.of(year, month, 1);
+		LocalDate nextMonthStartDate = startDate.plusMonths(1);
+
+		return workoutRepository.findWorkoutDates(startDate, nextMonthStartDate);
+	}
+
+	@Transactional(readOnly = true)
+	public List<WorkoutSummaryResponse> findWorkoutSummariesByDate(LocalDate date) {
+		return workoutRepository.findSummariesByDate(date);
 	}
 
 	private List<ExerciseToSave> validateWorkoutExercises(List<WorkoutExerciseRequest> workoutExercises) {

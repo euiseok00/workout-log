@@ -482,6 +482,7 @@ function WorkoutCreatePage({ onNavigate = () => {} }) {
             className={item === '오늘' ? 'active' : ''}
             key={item}
             onClick={() => {
+              if (item === '기록') onNavigate('record')
               if (item === '루틴') onNavigate('routine')
               if (item === '운동') onNavigate('exercise')
             }}

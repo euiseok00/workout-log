@@ -12,6 +12,7 @@ import com.workoutlog.backend.workout.WorkoutExerciseResponse;
 import com.workoutlog.backend.workout.WorkoutResponse;
 import com.workoutlog.backend.workout.WorkoutSetResponse;
 import com.workoutlog.backend.workout.WorkoutSetType;
+import com.workoutlog.backend.workout.WorkoutSummaryResponse;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -105,6 +106,47 @@ public class WorkoutRepository {
 				.map(WorkoutExerciseBuilder::build)
 				.toList()
 		));
+	}
+
+	public List<LocalDate> findWorkoutDates(LocalDate startDate, LocalDate nextMonthStartDate) {
+		return jdbcClient.sql("""
+				SELECT DISTINCT workout_date
+				FROM workouts
+				WHERE workout_date >= :startDate
+				  AND workout_date < :nextMonthStartDate
+				ORDER BY workout_date
+				""")
+			.param("startDate", startDate)
+			.param("nextMonthStartDate", nextMonthStartDate)
+			.query(LocalDate.class)
+			.list();
+	}
+
+	public List<WorkoutSummaryResponse> findSummariesByDate(LocalDate date) {
+		return jdbcClient.sql("""
+				SELECT w.workout_id,
+				       w.workout_date,
+				       w.workout_order,
+				       w.memo,
+				       COUNT(DISTINCT we.workout_exercise_id) AS exercise_count,
+				       COUNT(ws.workout_set_id) AS set_count
+				FROM workouts w
+				LEFT JOIN workout_exercises we ON w.workout_id = we.workout_id
+				LEFT JOIN workout_sets ws ON we.workout_exercise_id = ws.workout_exercise_id
+				WHERE w.workout_date = :date
+				GROUP BY w.workout_id, w.workout_date, w.workout_order, w.memo
+				ORDER BY w.workout_order
+				""")
+			.param("date", date)
+			.query((rs, rowNum) -> new WorkoutSummaryResponse(
+				rs.getInt("workout_id"),
+				rs.getObject("workout_date", LocalDate.class),
+				rs.getInt("workout_order"),
+				rs.getString("memo"),
+				rs.getInt("exercise_count"),
+				rs.getInt("set_count")
+			))
+			.list();
 	}
 
 	public Integer saveWorkout(LocalDate workoutDate, Integer workoutOrder, String memo) {

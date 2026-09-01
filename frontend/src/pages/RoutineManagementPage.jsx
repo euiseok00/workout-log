@@ -541,6 +541,7 @@ function RoutineManagementPage({ onNavigate = () => {} }) {
             key={item}
             onClick={() => {
               if (item === '오늘') onNavigate('today')
+              if (item === '기록') onNavigate('record')
               if (item === '운동') onNavigate('exercise')
             }}
           >

@@ -1,12 +1,19 @@
 package com.workoutlog.backend.workout.controller;
 
 import java.net.URI;
+import java.time.LocalDate;
+import java.util.List;
 
 import com.workoutlog.backend.workout.WorkoutResponse;
+import com.workoutlog.backend.workout.WorkoutSummaryResponse;
 import com.workoutlog.backend.workout.dto.WorkoutCreateFromRoutineRequest;
 import com.workoutlog.backend.workout.dto.WorkoutCreateRequest;
 import com.workoutlog.backend.workout.service.WorkoutService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,6 +21,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Validated
@@ -54,6 +62,21 @@ public class WorkoutController {
 		return ResponseEntity
 			.created(URI.create("/api/workouts/" + workout.workoutId()))
 			.body(workout);
+	}
+
+	@GetMapping("/calendar")
+	public List<LocalDate> findWorkoutCalendarDates(
+		@RequestParam @NotNull Integer year,
+		@RequestParam @NotNull @Min(1) @Max(12) Integer month
+	) {
+		return workoutService.findWorkoutDates(year, month);
+	}
+
+	@GetMapping
+	public List<WorkoutSummaryResponse> findWorkoutsByDate(
+		@RequestParam @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+	) {
+		return workoutService.findWorkoutSummariesByDate(date);
 	}
 
 	@GetMapping("/{workoutId}")

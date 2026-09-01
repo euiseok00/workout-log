@@ -33,6 +33,8 @@
 .ghost-button,
 .danger-outline-button,
 .workout-action-grid button,
+.record-month-header button,
+.record-calendar button,
 .exercise-actions button,
 .sheet-header button,
 .exercise-form button,
@@ -515,6 +517,139 @@
 .workout-action-grid .ghost-button {
   width: 100%;
   min-height: 42px;
+}
+
+.record-month-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.record-month-header strong {
+  color: #111;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.record-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.record-weekday {
+  padding: 4px 0;
+  color: #777;
+  font-size: 12px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.record-calendar button,
+.record-calendar-empty {
+  aspect-ratio: 1;
+  min-width: 0;
+}
+
+.record-calendar button {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 3px;
+  border: 1px solid #d7d7d7;
+  border-radius: 6px;
+  background: #fff;
+  color: #111;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.record-calendar button.active {
+  border-color: #111;
+  background: #111;
+  color: #fff;
+}
+
+.record-calendar i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentcolor;
+}
+
+.workout-record-card > span {
+  flex: 0 0 auto;
+  color: #666;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.record-detail-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.record-detail-summary strong {
+  color: #111;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.record-detail-summary span,
+.record-memo {
+  color: #555;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.record-memo {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.record-exercise-detail {
+  background: #fff;
+}
+
+.record-set-table {
+  display: grid;
+  overflow-x: auto;
+  border: 1px solid #d7d7d7;
+  border-radius: 6px;
+}
+
+.record-set-row {
+  display: grid;
+  grid-template-columns: 42px 56px 46px 46px 64px 46px;
+  min-width: 300px;
+  border-top: 1px solid #e6e6e6;
+}
+
+.record-set-row:first-child {
+  border-top: 0;
+}
+
+.record-set-row span {
+  padding: 8px 6px;
+  color: #222;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+  border-left: 1px solid #e6e6e6;
+}
+
+.record-set-row span:first-child {
+  border-left: 0;
+}
+
+.record-set-head span {
+  background: #f3f3f3;
+  color: #666;
+  font-size: 11px;
+  font-weight: 900;
 }
 
 .saved-workout-summary {
