@@ -32,6 +32,7 @@
 .add-button,
 .ghost-button,
 .danger-outline-button,
+.workout-action-grid button,
 .exercise-actions button,
 .sheet-header button,
 .exercise-form button,
@@ -502,6 +503,73 @@
 .routine-form-actions {
   display: grid;
   gap: 8px;
+}
+
+.workout-action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.workout-action-grid .add-button,
+.workout-action-grid .ghost-button {
+  width: 100%;
+  min-height: 42px;
+}
+
+.saved-workout-summary {
+  margin: 0;
+  color: #444;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.complete-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #333;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.complete-row input {
+  width: 18px;
+  height: 18px;
+  accent-color: #111;
+}
+
+.workout-set-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.workout-set-grid label {
+  display: grid;
+  gap: 5px;
+  color: #444;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.workout-set-grid input,
+.workout-set-grid select {
+  width: 100%;
+  height: 40px;
+  border: 1px solid #c8c8c8;
+  border-radius: 6px;
+  background: #fff;
+  color: #111;
+  padding: 0 8px;
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.workout-set-grid input:focus,
+.workout-set-grid select:focus {
+  border-color: #111;
 }
 
 .danger-outline-button {

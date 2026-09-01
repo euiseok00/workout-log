@@ -43,7 +43,7 @@ function toFormExercises(exercises) {
     }))
 }
 
-function RoutineManagementPage() {
+function RoutineManagementPage({ onNavigate = () => {} }) {
   const [routines, setRoutines] = useState([])
   const [availableExercises, setAvailableExercises] = useState([])
   const [mode, setMode] = useState('list')
@@ -535,7 +535,15 @@ function RoutineManagementPage() {
 
       <nav className="bottom-nav" aria-label="하단 메뉴">
         {navItems.map((item) => (
-          <button type="button" className={item === '루틴' ? 'active' : ''} key={item}>
+          <button
+            type="button"
+            className={item === '루틴' ? 'active' : ''}
+            key={item}
+            onClick={() => {
+              if (item === '오늘') onNavigate('today')
+              if (item === '운동') onNavigate('exercise')
+            }}
+          >
             {item}
           </button>
         ))}

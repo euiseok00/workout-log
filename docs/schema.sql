@@ -126,6 +126,7 @@ CREATE TABLE workout_exercises (
 
     exercise_order INTEGER NOT NULL,
     memo TEXT,
+    completed BOOLEAN NOT NULL DEFAULT FALSE,
 
     FOREIGN KEY (workout_id)
         REFERENCES workouts(workout_id)
@@ -150,6 +151,7 @@ CREATE TABLE workout_sets (
     set_order INTEGER NOT NULL,
     weight NUMERIC(5,2) NOT NULL,
     reps INTEGER NOT NULL,
+    rpe INTEGER,
     set_type VARCHAR(10) NOT NULL,
     completed BOOLEAN NOT NULL DEFAULT FALSE,
 
@@ -162,6 +164,7 @@ CREATE TABLE workout_sets (
     CHECK (set_order >= 1),
     CHECK (weight >= 0),
     CHECK (reps >= 0),
+    CHECK (rpe IS NULL OR (rpe >= 1 AND rpe <= 10)),
 
     CHECK (
         set_type IN (

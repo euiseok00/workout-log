@@ -6,6 +6,8 @@ import com.workoutlog.backend.exercise.ExerciseNotFoundException;
 import com.workoutlog.backend.exercise.ExerciseOperationException;
 import com.workoutlog.backend.routine.RoutineNotFoundException;
 import com.workoutlog.backend.routine.RoutineOperationException;
+import com.workoutlog.backend.workout.WorkoutNotFoundException;
+import com.workoutlog.backend.workout.WorkoutOperationException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +33,13 @@ public class GlobalExceptionHandler {
 			.body(new ApiErrorResponse("ROUTINE_NOT_FOUND", exception.getMessage()));
 	}
 
+	@ExceptionHandler(WorkoutNotFoundException.class)
+	public ResponseEntity<ApiErrorResponse> handleWorkoutNotFound(WorkoutNotFoundException exception) {
+		return ResponseEntity
+			.status(HttpStatus.NOT_FOUND)
+			.body(new ApiErrorResponse("WORKOUT_NOT_FOUND", exception.getMessage()));
+	}
+
 	@ExceptionHandler(ExerciseOperationException.class)
 	public ResponseEntity<ApiErrorResponse> handleExerciseOperation(ExerciseOperationException exception) {
 		return ResponseEntity
@@ -43,6 +52,13 @@ public class GlobalExceptionHandler {
 		return ResponseEntity
 			.status(HttpStatus.BAD_REQUEST)
 			.body(new ApiErrorResponse("INVALID_ROUTINE_OPERATION", exception.getMessage()));
+	}
+
+	@ExceptionHandler(WorkoutOperationException.class)
+	public ResponseEntity<ApiErrorResponse> handleWorkoutOperation(WorkoutOperationException exception) {
+		return ResponseEntity
+			.status(HttpStatus.BAD_REQUEST)
+			.body(new ApiErrorResponse("INVALID_WORKOUT_OPERATION", exception.getMessage()));
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)

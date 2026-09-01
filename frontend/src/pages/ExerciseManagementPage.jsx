@@ -14,7 +14,7 @@ const categories = [
 
 const navItems = ['오늘', '기록', '루틴', '운동']
 
-function ExerciseManagementPage() {
+function ExerciseManagementPage({ onNavigate = () => {} }) {
   const [exercises, setExercises] = useState([])
   const [searchText, setSearchText] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
@@ -205,7 +205,15 @@ function ExerciseManagementPage() {
 
       <nav className="bottom-nav" aria-label="하단 메뉴">
         {navItems.map((item) => (
-          <button type="button" className={item === '운동' ? 'active' : ''} key={item}>
+          <button
+            type="button"
+            className={item === '운동' ? 'active' : ''}
+            key={item}
+            onClick={() => {
+              if (item === '오늘') onNavigate('today')
+              if (item === '루틴') onNavigate('routine')
+            }}
+          >
             {item}
           </button>
         ))}
