@@ -4,6 +4,7 @@ import java.util.stream.Collectors;
 
 import com.workoutlog.backend.exercise.ExerciseNotFoundException;
 import com.workoutlog.backend.exercise.ExerciseOperationException;
+import com.workoutlog.backend.routine.RoutineNotFoundException;
 import com.workoutlog.backend.routine.RoutineOperationException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
@@ -21,6 +22,13 @@ public class GlobalExceptionHandler {
 		return ResponseEntity
 			.status(HttpStatus.NOT_FOUND)
 			.body(new ApiErrorResponse("EXERCISE_NOT_FOUND", exception.getMessage()));
+	}
+
+	@ExceptionHandler(RoutineNotFoundException.class)
+	public ResponseEntity<ApiErrorResponse> handleRoutineNotFound(RoutineNotFoundException exception) {
+		return ResponseEntity
+			.status(HttpStatus.NOT_FOUND)
+			.body(new ApiErrorResponse("ROUTINE_NOT_FOUND", exception.getMessage()));
 	}
 
 	@ExceptionHandler(ExerciseOperationException.class)

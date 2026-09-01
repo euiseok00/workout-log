@@ -9,6 +9,8 @@ import java.util.Set;
 import com.workoutlog.backend.exercise.Exercise;
 import com.workoutlog.backend.exercise.ExerciseNotFoundException;
 import com.workoutlog.backend.exercise.repository.ExerciseRepository;
+import com.workoutlog.backend.routine.RoutineDetail;
+import com.workoutlog.backend.routine.RoutineNotFoundException;
 import com.workoutlog.backend.routine.RoutineOperationException;
 import com.workoutlog.backend.routine.RoutineSummary;
 import com.workoutlog.backend.routine.dto.RoutineCreateRequest.RoutineExerciseRequest;
@@ -32,6 +34,12 @@ public class RoutineService {
 		return routineRepository.findAll();
 	}
 
+	@Transactional(readOnly = true)
+	public RoutineDetail findRoutineDetail(Integer routineId) {
+		return routineRepository.findDetailById(routineId)
+			.orElseThrow(() -> new RoutineNotFoundException(routineId));
+	}
+
 	@Transactional
 	public RoutineSummary createRoutine(
 		String routineName,
@@ -40,7 +48,39 @@ public class RoutineService {
 	) {
 		List<ExerciseWithOrder> exercises = validateRoutineExercises(routineExercises);
 		Integer routineId = routineRepository.saveRoutine(routineName, routineMemo);
+		saveRoutineDetails(routineId, routineExercises);
 
+		return toRoutineSummary(routineId, routineName, routineMemo, exercises);
+	}
+
+	@Transactional
+	public RoutineSummary updateRoutine(
+		Integer routineId,
+		String routineName,
+		String routineMemo,
+		List<RoutineExerciseRequest> routineExercises
+	) {
+		validateRoutineExists(routineId);
+		List<ExerciseWithOrder> exercises = validateRoutineExercises(routineExercises);
+		routineRepository.updateRoutine(routineId, routineName, routineMemo);
+		routineRepository.deleteRoutineExercisesByRoutineId(routineId);
+		saveRoutineDetails(routineId, routineExercises);
+
+		return toRoutineSummary(routineId, routineName, routineMemo, exercises);
+	}
+
+	@Transactional
+	public void deleteRoutine(Integer routineId) {
+		int deletedCount = routineRepository.deleteById(routineId);
+		if (deletedCount == 0) {
+			throw new RoutineNotFoundException(routineId);
+		}
+	}
+
+	private void saveRoutineDetails(
+		Integer routineId,
+		List<RoutineExerciseRequest> routineExercises
+	) {
 		for (RoutineExerciseRequest routineExercise : routineExercises) {
 			Integer routineExerciseId = routineRepository.saveRoutineExercise(
 				routineId,
@@ -59,7 +99,14 @@ public class RoutineService {
 				);
 			}
 		}
+	}
 
+	private RoutineSummary toRoutineSummary(
+		Integer routineId,
+		String routineName,
+		String routineMemo,
+		List<ExerciseWithOrder> exercises
+	) {
 		return new RoutineSummary(
 			routineId,
 			routineName,
@@ -70,6 +117,12 @@ public class RoutineService {
 				.map(Exercise::name)
 				.toList()
 		);
+	}
+
+	private void validateRoutineExists(Integer routineId) {
+		if (!routineRepository.existsById(routineId)) {
+			throw new RoutineNotFoundException(routineId);
+		}
 	}
 
 	private List<ExerciseWithOrder> validateRoutineExercises(List<RoutineExerciseRequest> routineExercises) {

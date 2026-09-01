@@ -15,6 +15,7 @@ import com.workoutlog.backend.exercise.ExerciseCategory;
 import com.workoutlog.backend.exercise.ExerciseNotFoundException;
 import com.workoutlog.backend.exercise.ExerciseType;
 import com.workoutlog.backend.exercise.repository.ExerciseRepository;
+import com.workoutlog.backend.routine.RoutineNotFoundException;
 import com.workoutlog.backend.routine.RoutineOperationException;
 import com.workoutlog.backend.routine.RoutineSetType;
 import com.workoutlog.backend.routine.RoutineSummary;
@@ -154,6 +155,78 @@ class RoutineServiceTest {
 		);
 
 		verify(routineRepository, never()).saveRoutine("Push A", null);
+	}
+
+	@Test
+	void updateRoutineUpdatesRoutineAndReplacesExercisesAndSets() {
+		RoutineExerciseRequest routineExercise = new RoutineExerciseRequest(
+			1,
+			1,
+			"벤치 수정",
+			List.of(set(1), set(2))
+		);
+		when(routineRepository.existsById(10))
+			.thenReturn(true);
+		when(exerciseRepository.findById(1))
+			.thenReturn(Optional.of(new Exercise(
+				1,
+				"벤치프레스",
+				ExerciseType.SYSTEM,
+				ExerciseCategory.CHEST,
+				true
+			)));
+		when(routineRepository.saveRoutineExercise(10, 1, 1, "벤치 수정"))
+			.thenReturn(20);
+
+		RoutineSummary routine = routineService.updateRoutine(
+			10,
+			"수정된 Push A",
+			"수정 메모",
+			List.of(routineExercise)
+		);
+
+		assertEquals(10, routine.id());
+		assertEquals("수정된 Push A", routine.name());
+		assertEquals("수정 메모", routine.memo());
+		verify(routineRepository).updateRoutine(10, "수정된 Push A", "수정 메모");
+		verify(routineRepository).deleteRoutineExercisesByRoutineId(10);
+		verify(routineRepository).saveRoutineSet(20, 1, BigDecimal.ZERO, 10, RoutineSetType.WORKING);
+		verify(routineRepository).saveRoutineSet(20, 2, BigDecimal.ZERO, 10, RoutineSetType.WORKING);
+	}
+
+	@Test
+	void updateRoutineRejectsUnknownRoutine() {
+		RoutineExerciseRequest routineExercise = new RoutineExerciseRequest(1, 1, null, List.of(set(1)));
+		when(routineRepository.existsById(10))
+			.thenReturn(false);
+
+		assertThrows(
+			RoutineNotFoundException.class,
+			() -> routineService.updateRoutine(10, "Push A", null, List.of(routineExercise))
+		);
+
+		verify(routineRepository, never()).updateRoutine(10, "Push A", null);
+	}
+
+	@Test
+	void deleteRoutineDeletesExistingRoutine() {
+		when(routineRepository.deleteById(10))
+			.thenReturn(1);
+
+		routineService.deleteRoutine(10);
+
+		verify(routineRepository).deleteById(10);
+	}
+
+	@Test
+	void deleteRoutineRejectsUnknownRoutine() {
+		when(routineRepository.deleteById(10))
+			.thenReturn(0);
+
+		assertThrows(
+			RoutineNotFoundException.class,
+			() -> routineService.deleteRoutine(10)
+		);
 	}
 
 	private RoutineSetRequest set(Integer setOrder) {
