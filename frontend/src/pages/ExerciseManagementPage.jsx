@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 const categories = [
   { label: '전체', value: '' },
@@ -23,6 +23,10 @@ function ExerciseManagementPage({ onNavigate = () => {} }) {
   const [form, setForm] = useState({ name: '', category: 'CHEST' })
   const [errorMessage, setErrorMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isDisabling, setIsDisabling] = useState(false)
+  const savingRef = useRef(false)
+  const disablingRef = useRef(false)
 
   useEffect(() => {
     let ignore = false
@@ -99,11 +103,15 @@ function ExerciseManagementPage({ onNavigate = () => {} }) {
 
   async function saveExercise(event) {
     event.preventDefault()
+    if (savingRef.current) return
 
     const name = form.name.trim()
     if (!name) return
 
     const url = editingExercise ? `/api/exercises/${editingExercise.id}` : '/api/exercises'
+    savingRef.current = true
+    setIsSaving(true)
+
     try {
       const response = await fetch(url, {
         method: editingExercise ? 'PUT' : 'POST',
@@ -119,11 +127,17 @@ function ExerciseManagementPage({ onNavigate = () => {} }) {
       closeSheet()
     } catch {
       setErrorMessage('운동을 저장하지 못했습니다.')
+    } finally {
+      savingRef.current = false
+      setIsSaving(false)
     }
   }
 
   async function confirmDisable() {
-    if (exerciseToDisable?.type !== 'CUSTOM') return
+    if (exerciseToDisable?.type !== 'CUSTOM' || disablingRef.current) return
+
+    disablingRef.current = true
+    setIsDisabling(true)
 
     try {
       const response = await fetch(`/api/exercises/${exerciseToDisable.id}/inactive`, {
@@ -138,6 +152,9 @@ function ExerciseManagementPage({ onNavigate = () => {} }) {
       setExerciseToDisable(null)
     } catch {
       setErrorMessage('운동을 비활성화하지 못했습니다.')
+    } finally {
+      disablingRef.current = false
+      setIsDisabling(false)
     }
   }
 
@@ -261,8 +278,8 @@ function ExerciseManagementPage({ onNavigate = () => {} }) {
                     ))}
                 </select>
               </label>
-              <button type="submit" className="primary-action">
-                저장
+              <button type="submit" className="primary-action" disabled={isSaving}>
+                {isSaving ? '저장 중' : '저장'}
               </button>
             </form>
           </section>
@@ -284,8 +301,8 @@ function ExerciseManagementPage({ onNavigate = () => {} }) {
               <button type="button" onClick={() => setExerciseToDisable(null)}>
                 취소
               </button>
-              <button type="button" className="danger-fill" onClick={confirmDisable}>
-                비활성화
+              <button type="button" className="danger-fill" disabled={isDisabling} onClick={confirmDisable}>
+                {isDisabling ? '처리 중' : '비활성화'}
               </button>
             </div>
           </section>

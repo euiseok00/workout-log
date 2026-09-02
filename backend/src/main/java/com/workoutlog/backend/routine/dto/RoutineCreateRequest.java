@@ -6,6 +6,7 @@ import java.util.List;
 import com.workoutlog.backend.routine.RoutineSetType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -48,6 +49,7 @@ public record RoutineCreateRequest(
 
 		@NotNull
 		@DecimalMin("0.0")
+		@Digits(integer = 3, fraction = 2)
 		BigDecimal weight,
 
 		@NotNull

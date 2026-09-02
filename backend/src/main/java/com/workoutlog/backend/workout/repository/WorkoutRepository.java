@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import com.workoutlog.backend.exercise.ExerciseCategory;
 import com.workoutlog.backend.workout.WorkoutExerciseResponse;
 import com.workoutlog.backend.workout.WorkoutResponse;
 import com.workoutlog.backend.workout.WorkoutSetResponse;
@@ -45,6 +46,7 @@ public class WorkoutRepository {
 				SELECT we.workout_exercise_id,
 				       we.exercise_id,
 				       we.exercise_name,
+				       e.exercise_category,
 				       we.exercise_order,
 				       we.memo AS exercise_memo,
 				       we.completed AS exercise_completed,
@@ -55,6 +57,7 @@ public class WorkoutRepository {
 				       ws.set_type,
 				       ws.completed AS set_completed
 				FROM workout_exercises we
+				JOIN exercises e ON we.exercise_id = e.exercise_id
 				LEFT JOIN workout_sets ws ON we.workout_exercise_id = ws.workout_exercise_id
 				WHERE we.workout_id = :workoutId
 				ORDER BY we.exercise_order, ws.set_order
@@ -64,6 +67,7 @@ public class WorkoutRepository {
 				rs.getInt("workout_exercise_id"),
 				rs.getInt("exercise_id"),
 				rs.getString("exercise_name"),
+				ExerciseCategory.valueOf(rs.getString("exercise_category")),
 				rs.getInt("exercise_order"),
 				rs.getString("exercise_memo"),
 				rs.getBoolean("exercise_completed"),
@@ -129,7 +133,7 @@ public class WorkoutRepository {
 				       w.workout_order,
 				       w.memo,
 				       COUNT(DISTINCT we.workout_exercise_id) AS exercise_count,
-				       COUNT(ws.workout_set_id) AS set_count
+				       COUNT(ws.workout_set_id) FILTER (WHERE ws.set_type <> 'WARMUP') AS set_count
 				FROM workouts w
 				LEFT JOIN workout_exercises we ON w.workout_id = we.workout_id
 				LEFT JOIN workout_sets ws ON we.workout_exercise_id = ws.workout_exercise_id
@@ -238,6 +242,15 @@ public class WorkoutRepository {
 			.update();
 	}
 
+	public int deleteById(Integer workoutId) {
+		return jdbcClient.sql("""
+				DELETE FROM workouts
+				WHERE workout_id = :workoutId
+				""")
+			.param("workoutId", workoutId)
+			.update();
+	}
+
 	private Optional<WorkoutHeader> findHeaderById(Integer workoutId) {
 		return jdbcClient.sql("""
 				SELECT workout_id, workout_date, workout_order, memo
@@ -266,6 +279,7 @@ public class WorkoutRepository {
 		Integer workoutExerciseId,
 		Integer exerciseId,
 		String exerciseName,
+		ExerciseCategory exerciseCategory,
 		Integer exerciseOrder,
 		String exerciseMemo,
 		boolean exerciseCompleted,
@@ -294,6 +308,7 @@ public class WorkoutRepository {
 			return new WorkoutExerciseResponse(
 				row.exerciseId(),
 				row.exerciseName(),
+				row.exerciseCategory(),
 				row.exerciseOrder(),
 				row.exerciseMemo(),
 				row.exerciseCompleted(),

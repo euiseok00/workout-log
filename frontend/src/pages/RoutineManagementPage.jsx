@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import { isDbWeightInput } from '../utils/numberInputs.js'
+
 const categories = [
   { label: '전체', value: '' },
   { label: '가슴', value: 'CHEST' },
@@ -23,6 +25,12 @@ const navItems = ['오늘', '기록', '루틴', '운동']
 
 function categoryLabel(value) {
   return categories.find((category) => category.value === value)?.label ?? value
+}
+
+function countedSetNumber(sets, setIndex) {
+  if (sets[setIndex].setType === 'WARMUP') return '-'
+
+  return sets.slice(0, setIndex + 1).filter((set) => set.setType !== 'WARMUP').length
 }
 
 function toFormExercises(exercises) {
@@ -180,6 +188,8 @@ function RoutineManagementPage({ onNavigate = () => {} }) {
   }
 
   function updateSet(exerciseIndex, setIndex, field, value) {
+    if (field === 'weight' && !isDbWeightInput(value)) return
+
     setSelectedExercises((items) =>
       items.map((exercise, currentIndex) => {
         if (currentIndex !== exerciseIndex) return exercise
@@ -460,37 +470,7 @@ function RoutineManagementPage({ onNavigate = () => {} }) {
                       <div className="routine-sets">
                         {exercise.sets.map((set, setIndex) => (
                           <article className="routine-set-card" key={setIndex}>
-                            <div className="routine-set-header">
-                              <h4>{setIndex + 1}세트</h4>
-                              {exercise.sets.length > 1 && (
-                                <button
-                                  type="button"
-                                  className="set-remove-button"
-                                  onClick={() => removeSet(exerciseIndex, setIndex)}
-                                >
-                                  삭제
-                                </button>
-                              )}
-                            </div>
-                            <div className="set-grid">
-                              <label>
-                                중량
-                                <input
-                                  type="number"
-                                  min="0"
-                                  value={set.weight}
-                                  onChange={(event) => updateSet(exerciseIndex, setIndex, 'weight', event.target.value)}
-                                />
-                              </label>
-                              <label>
-                                횟수
-                                <input
-                                  type="number"
-                                  min="0"
-                                  value={set.reps}
-                                  onChange={(event) => updateSet(exerciseIndex, setIndex, 'reps', event.target.value)}
-                                />
-                              </label>
+                            <div className="workout-set-grid routine-set-grid">
                               <label>
                                 유형
                                 <select
@@ -506,6 +486,42 @@ function RoutineManagementPage({ onNavigate = () => {} }) {
                                   ))}
                                 </select>
                               </label>
+                              <div className="workout-set-number">
+                                <span>세트</span>
+                                <strong>{countedSetNumber(exercise.sets, setIndex)}</strong>
+                              </div>
+                              <label>
+                                중량
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  value={set.weight}
+                                  onChange={(event) => updateSet(exerciseIndex, setIndex, 'weight', event.target.value)}
+                                />
+                              </label>
+                              <label>
+                                횟수
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={set.reps}
+                                  onChange={(event) => updateSet(exerciseIndex, setIndex, 'reps', event.target.value)}
+                                />
+                              </label>
+                              <button
+                                type="button"
+                                className="set-remove-button workout-set-delete"
+                                aria-label={`${setIndex + 1}세트 삭제`}
+                                disabled={exercise.sets.length === 1}
+                                onClick={() => {
+                                  if (window.confirm(`${setIndex + 1}세트를 삭제할까요?`)) {
+                                    removeSet(exerciseIndex, setIndex)
+                                  }
+                                }}
+                              >
+                                ×
+                              </button>
                             </div>
                           </article>
                         ))}

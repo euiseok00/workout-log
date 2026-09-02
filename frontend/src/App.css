@@ -325,7 +325,7 @@
 
 .routine-exercise-top > div:first-child {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto auto 1fr;
   column-gap: 8px;
   align-items: baseline;
   min-width: 0;
@@ -333,7 +333,7 @@
 
 .routine-exercise-top span {
   color: #777;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 900;
 }
 
@@ -347,8 +347,7 @@
 }
 
 .routine-exercise-top p {
-  grid-column: 2;
-  margin: 2px 0 0;
+  margin: 0;
   color: #666;
   font-size: 13px;
   font-weight: 700;
@@ -522,13 +521,117 @@
 .record-month-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  justify-content: center;
+  gap: 6px;
 }
 
-.record-month-header strong {
+.record-today-button,
+.record-month-arrow {
+  height: 26px;
+  border: 1px solid #c8c8c8;
+  border-radius: 0;
+  background: #f7f7f7;
+  color: #4b5563;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.record-today-button {
+  padding: 0 8px;
+}
+
+.record-month-arrow {
+  width: 26px;
+  padding: 0;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.record-month-picker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 126px;
+  height: 32px;
   color: #111;
-  font-size: 18px;
+  font-size: 26px;
+  font-weight: 900;
+}
+
+.record-month-toggle {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid #111;
+  border-radius: 4px;
+  background: #fff;
+  color: #111;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.record-month-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  z-index: 5;
+  width: 260px;
+  border: 1px solid #c8c8c8;
+  background: #fff;
+  box-shadow: 0 8px 16px rgb(0 0 0 / 10%);
+  transform: translateX(-50%);
+}
+
+.record-month-dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  color: #111;
+  font-size: 14px;
+}
+
+.record-month-dropdown-header button {
+  border: 0;
+  background: transparent;
+  color: #999;
+  font-size: 22px;
+}
+
+.record-month-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid #e5e5e5;
+}
+
+.record-month-options > div {
+  max-height: 158px;
+  overflow-y: auto;
+  padding: 6px 8px;
+}
+
+.record-month-options > div:first-child {
+  border-right: 1px solid #e5e5e5;
+}
+
+.record-month-options button {
+  display: block;
+  width: 100%;
+  height: 24px;
+  border: 0;
+  background: transparent;
+  color: #777;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.record-month-options button.active {
+  background: #e9f0f2;
+  color: #111;
   font-weight: 900;
 }
 
@@ -614,42 +717,50 @@
   background: #fff;
 }
 
-.record-set-table {
+.record-delete-button {
+  width: 100%;
+}
+
+.record-set-list {
   display: grid;
-  overflow-x: auto;
-  border: 1px solid #d7d7d7;
+  gap: 8px;
+}
+
+.record-set-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.7fr) repeat(2, minmax(0, 1fr)) minmax(0, 0.7fr);
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #d0d0d0;
   border-radius: 6px;
+  background: #fff;
 }
 
-.record-set-row {
+.record-set-grid div {
   display: grid;
-  grid-template-columns: 42px 56px 46px 46px 64px 46px;
-  min-width: 300px;
-  border-top: 1px solid #e6e6e6;
+  grid-template-rows: 16px 40px;
+  gap: 6px;
+  align-items: center;
+  text-align: center;
 }
 
-.record-set-row:first-child {
-  border-top: 0;
-}
-
-.record-set-row span {
-  padding: 8px 6px;
-  color: #222;
+.record-set-grid span {
+  color: #444;
   font-size: 12px;
   font-weight: 800;
-  text-align: center;
-  border-left: 1px solid #e6e6e6;
+  line-height: 16px;
 }
 
-.record-set-row span:first-child {
-  border-left: 0;
-}
-
-.record-set-head span {
-  background: #f3f3f3;
-  color: #666;
-  font-size: 11px;
-  font-weight: 900;
+.record-set-grid strong {
+  display: grid;
+  place-items: center;
+  height: 40px;
+  border: 1px solid #d7d7d7;
+  border-radius: 6px;
+  background: #f7f7f7;
+  color: #111;
+  font-size: 14px;
+  font-weight: 800;
 }
 
 .saved-workout-summary {
@@ -676,16 +787,41 @@
 
 .workout-set-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.7fr) repeat(2, minmax(0, 1fr)) minmax(0, 0.7fr) 36px;
   gap: 8px;
+  overflow-x: auto;
 }
 
-.workout-set-grid label {
+.routine-set-grid {
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.7fr) repeat(2, minmax(0, 1fr)) 36px;
+}
+
+.workout-set-grid label,
+.workout-set-number {
   display: grid;
-  gap: 5px;
+  grid-template-rows: 16px 40px;
+  gap: 6px;
+  align-items: center;
   color: #444;
   font-size: 12px;
   font-weight: 800;
+  text-align: center;
+}
+
+.workout-set-grid label > span,
+.workout-set-number span {
+  line-height: 16px;
+}
+
+.workout-set-number strong {
+  display: grid;
+  place-items: center;
+  height: 40px;
+  border: 1px solid #d7d7d7;
+  border-radius: 6px;
+  background: #f7f7f7;
+  color: #111;
+  font-size: 14px;
 }
 
 .workout-set-grid input,
@@ -700,11 +836,39 @@
   font: inherit;
   font-size: 14px;
   outline: none;
+  text-align: center;
+}
+
+.workout-set-complete {
+  justify-items: center;
+}
+
+.workout-set-complete input {
+  width: 22px;
+  height: 40px;
+  accent-color: #111;
 }
 
 .workout-set-grid input:focus,
 .workout-set-grid select:focus {
   border-color: #111;
+}
+
+.workout-set-delete {
+  display: grid;
+  place-items: center;
+  align-self: end;
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
+  border: 1px solid #c8c8c8;
+  border-radius: 5px;
+  background: #fff;
+  color: #c62828;
+  padding: 0;
+  line-height: 1;
+  font-size: 16px;
+  font-weight: 900;
 }
 
 .danger-outline-button {

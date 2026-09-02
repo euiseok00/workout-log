@@ -136,6 +136,7 @@ public class WorkoutService {
 			exerciseResponses.add(new WorkoutExerciseResponse(
 				routineExercise.exerciseId(),
 				routineExercise.exerciseName(),
+				routineExercise.exerciseCategory(),
 				routineExercise.exerciseOrder(),
 				routineExercise.memo(),
 				false,
@@ -169,6 +170,14 @@ public class WorkoutService {
 	@Transactional(readOnly = true)
 	public List<WorkoutSummaryResponse> findWorkoutSummariesByDate(LocalDate date) {
 		return workoutRepository.findSummariesByDate(date);
+	}
+
+	@Transactional
+	public void deleteWorkout(Integer workoutId) {
+		int deletedCount = workoutRepository.deleteById(workoutId);
+		if (deletedCount == 0) {
+			throw new WorkoutNotFoundException(workoutId);
+		}
 	}
 
 	private List<ExerciseToSave> validateWorkoutExercises(List<WorkoutExerciseRequest> workoutExercises) {
@@ -215,6 +224,7 @@ public class WorkoutService {
 		return new WorkoutExerciseResponse(
 			exercise.exercise().id(),
 			exercise.exercise().name(),
+			exercise.exercise().category(),
 			exercise.exerciseOrder(),
 			exercise.memo(),
 			exercise.completed(),

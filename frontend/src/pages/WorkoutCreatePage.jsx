@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import { isDbWeightInput } from '../utils/numberInputs.js'
+
 const categories = [
   { label: '전체', value: '' },
   { label: '가슴', value: 'CHEST' },
@@ -20,6 +22,7 @@ const setTypes = [
 ]
 
 const navItems = ['오늘', '기록', '루틴', '운동']
+const draftStorageKey = 'workout-log:workout-draft'
 
 function today() {
   return new Date().toISOString().slice(0, 10)
@@ -27,6 +30,21 @@ function today() {
 
 function categoryLabel(value) {
   return categories.find((category) => category.value === value)?.label ?? value
+}
+
+function countedSetNumber(sets, setIndex) {
+  if (sets[setIndex].setType === 'WARMUP') return '-'
+
+  return sets.slice(0, setIndex + 1).filter((set) => set.setType !== 'WARMUP').length
+}
+
+function readDraft() {
+  try {
+    const draft = JSON.parse(localStorage.getItem(draftStorageKey))
+    return Array.isArray(draft?.selectedExercises) ? draft : null
+  } catch {
+    return null
+  }
 }
 
 function toWorkoutExercises(exercises) {
@@ -37,13 +55,11 @@ function toWorkoutExercises(exercises) {
       name: exercise.exerciseName,
       category: exercise.exerciseCategory ?? '',
       memo: exercise.memo ?? '',
-      completed: Boolean(exercise.completed),
       sets: [...exercise.sets]
         .sort((a, b) => a.setOrder - b.setOrder)
         .map((set) => ({
           weight: set.weight,
           reps: set.reps,
-          rpe: set.rpe ?? '',
           setType: set.setType,
           completed: Boolean(set.completed),
         })),
@@ -60,9 +76,10 @@ async function readErrorMessage(response) {
 }
 
 function WorkoutCreatePage({ onNavigate = () => {} }) {
-  const [workoutDate, setWorkoutDate] = useState(today)
-  const [memo, setMemo] = useState('')
-  const [selectedExercises, setSelectedExercises] = useState([])
+  const initialDraft = useMemo(() => readDraft(), [])
+  const [workoutDate, setWorkoutDate] = useState(initialDraft?.workoutDate ?? today)
+  const [memo, setMemo] = useState(initialDraft?.memo ?? '')
+  const [selectedExercises, setSelectedExercises] = useState(initialDraft?.selectedExercises ?? [])
   const [routines, setRoutines] = useState([])
   const [availableExercises, setAvailableExercises] = useState([])
   const [selectedCategory, setSelectedCategory] = useState('')
@@ -76,6 +93,7 @@ function WorkoutCreatePage({ onNavigate = () => {} }) {
   const [message, setMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const savingRef = useRef(false)
+  const loadingRoutineRef = useRef(false)
 
   const loadRoutines = useCallback(async () => {
     setIsRoutineLoading(true)
@@ -107,6 +125,21 @@ function WorkoutCreatePage({ onNavigate = () => {} }) {
       setIsExerciseLoading(false)
     }
   }, [selectedCategory])
+
+  useEffect(() => {
+    if (savedWorkout) {
+      localStorage.removeItem(draftStorageKey)
+      return
+    }
+
+    const hasDraft = memo.trim() || selectedExercises.length > 0 || workoutDate !== today()
+    if (!hasDraft) {
+      localStorage.removeItem(draftStorageKey)
+      return
+    }
+
+    localStorage.setItem(draftStorageKey, JSON.stringify({ workoutDate, memo, selectedExercises }))
+  }, [memo, savedWorkout, selectedExercises, workoutDate])
 
   useEffect(() => {
     if (isRoutineSheetOpen) {
@@ -146,13 +179,15 @@ function WorkoutCreatePage({ onNavigate = () => {} }) {
         name: exercise.name,
         category: exercise.category,
         memo: '',
-        completed: false,
-        sets: [{ weight: 0, reps: 10, rpe: '', setType: 'WORKING', completed: false }],
+        sets: [{ weight: 0, reps: 10, setType: 'WORKING', completed: false }],
       },
     ])
   }
 
   async function loadRoutineDraft(routine) {
+    if (loadingRoutineRef.current) return
+
+    loadingRoutineRef.current = true
     setIsRoutineLoading(true)
     setErrorMessage('')
     setMessage('')
@@ -169,6 +204,7 @@ function WorkoutCreatePage({ onNavigate = () => {} }) {
     } catch {
       setErrorMessage('루틴 상세를 불러오지 못했습니다.')
     } finally {
+      loadingRoutineRef.current = false
       setIsRoutineLoading(false)
     }
   }
@@ -182,6 +218,8 @@ function WorkoutCreatePage({ onNavigate = () => {} }) {
   }
 
   function updateSet(exerciseIndex, setIndex, field, value) {
+    if (field === 'weight' && !isDbWeightInput(value)) return
+
     setSelectedExercises((items) =>
       items.map((exercise, currentIndex) => {
         if (currentIndex !== exerciseIndex) return exercise
@@ -202,7 +240,7 @@ function WorkoutCreatePage({ onNavigate = () => {} }) {
         index === exerciseIndex
           ? {
               ...exercise,
-              sets: [...exercise.sets, { weight: 0, reps: 10, rpe: '', setType: 'WORKING', completed: false }],
+              sets: [...exercise.sets, { weight: 0, reps: 10, setType: 'WORKING', completed: false }],
             }
           : exercise,
       ),
@@ -247,12 +285,11 @@ function WorkoutCreatePage({ onNavigate = () => {} }) {
         exerciseId: exercise.id,
         exerciseOrder: exerciseIndex + 1,
         memo: exercise.memo.trim(),
-        completed: exercise.completed,
         sets: exercise.sets.map((set, setIndex) => ({
           setOrder: setIndex + 1,
           weight: Number(set.weight),
           reps: Number(set.reps),
-          rpe: set.rpe === '' ? null : Number(set.rpe),
+          rpe: null,
           setType: set.setType,
           completed: set.completed,
         })),
@@ -374,17 +411,7 @@ function WorkoutCreatePage({ onNavigate = () => {} }) {
                   </div>
                 </div>
 
-                <label className="complete-row">
-                  <input
-                    type="checkbox"
-                    checked={exercise.completed}
-                    onChange={(event) => updateExercise(exerciseIndex, 'completed', event.target.checked)}
-                  />
-                  운동 완료
-                </label>
-
-                <label className="exercise-memo">
-                  메모
+                <label className="exercise-memo" aria-label={`${exercise.name} 메모`}>
                   <textarea
                     value={exercise.memo}
                     placeholder="운동 메모"
@@ -395,47 +422,7 @@ function WorkoutCreatePage({ onNavigate = () => {} }) {
                 <div className="routine-sets">
                   {exercise.sets.map((set, setIndex) => (
                     <article className="routine-set-card" key={setIndex}>
-                      <div className="routine-set-header">
-                        <h4>{setIndex + 1}세트</h4>
-                        {exercise.sets.length > 1 && (
-                          <button
-                            type="button"
-                            className="set-remove-button"
-                            onClick={() => removeSet(exerciseIndex, setIndex)}
-                          >
-                            삭제
-                          </button>
-                        )}
-                      </div>
                       <div className="workout-set-grid">
-                        <label>
-                          중량
-                          <input
-                            type="number"
-                            min="0"
-                            value={set.weight}
-                            onChange={(event) => updateSet(exerciseIndex, setIndex, 'weight', event.target.value)}
-                          />
-                        </label>
-                        <label>
-                          횟수
-                          <input
-                            type="number"
-                            min="0"
-                            value={set.reps}
-                            onChange={(event) => updateSet(exerciseIndex, setIndex, 'reps', event.target.value)}
-                          />
-                        </label>
-                        <label>
-                          RPE
-                          <input
-                            type="number"
-                            min="1"
-                            max="10"
-                            value={set.rpe}
-                            onChange={(event) => updateSet(exerciseIndex, setIndex, 'rpe', event.target.value)}
-                          />
-                        </label>
                         <label>
                           유형
                           <select
@@ -449,15 +436,51 @@ function WorkoutCreatePage({ onNavigate = () => {} }) {
                             ))}
                           </select>
                         </label>
+                        <div className="workout-set-number">
+                          <span>세트</span>
+                          <strong>{countedSetNumber(exercise.sets, setIndex)}</strong>
+                        </div>
+                        <label>
+                          중량
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={set.weight}
+                            onChange={(event) => updateSet(exerciseIndex, setIndex, 'weight', event.target.value)}
+                          />
+                        </label>
+                        <label>
+                          횟수
+                          <input
+                            type="number"
+                            min="0"
+                            value={set.reps}
+                            onChange={(event) => updateSet(exerciseIndex, setIndex, 'reps', event.target.value)}
+                          />
+                        </label>
+                        <label className="workout-set-complete">
+                          <span>완료</span>
+                          <input
+                            type="checkbox"
+                            checked={set.completed}
+                            onChange={(event) => updateSet(exerciseIndex, setIndex, 'completed', event.target.checked)}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          className="set-remove-button workout-set-delete"
+                          aria-label={`${setIndex + 1}세트 삭제`}
+                          disabled={exercise.sets.length === 1}
+                          onClick={() => {
+                            if (window.confirm(`${setIndex + 1}세트를 삭제할까요?`)) {
+                              removeSet(exerciseIndex, setIndex)
+                            }
+                          }}
+                        >
+                          ×
+                        </button>
                       </div>
-                      <label className="complete-row">
-                        <input
-                          type="checkbox"
-                          checked={set.completed}
-                          onChange={(event) => updateSet(exerciseIndex, setIndex, 'completed', event.target.checked)}
-                        />
-                        세트 완료
-                      </label>
                     </article>
                   ))}
                   <button type="button" className="set-add-button" onClick={() => addSet(exerciseIndex)}>
@@ -511,7 +534,12 @@ function WorkoutCreatePage({ onNavigate = () => {} }) {
               {isRoutineLoading && <p className="empty-message">루틴 목록을 불러오는 중입니다.</p>}
               {!isRoutineLoading &&
                 routines.map((routine) => (
-                  <button type="button" key={routine.routineId} onClick={() => loadRoutineDraft(routine)}>
+                  <button
+                    type="button"
+                    key={routine.routineId}
+                    disabled={isRoutineLoading}
+                    onClick={() => loadRoutineDraft(routine)}
+                  >
                     <span>{routine.routineName}</span>
                     <small>{routine.exerciseCount}개</small>
                   </button>

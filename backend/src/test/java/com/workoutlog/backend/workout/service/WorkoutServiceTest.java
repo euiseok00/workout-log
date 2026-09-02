@@ -84,6 +84,7 @@ class WorkoutServiceTest {
 		assertEquals(10, workout.workoutId());
 		assertEquals(2, workout.workoutOrder());
 		assertEquals("벤치프레스", workout.exercises().getFirst().exerciseName());
+		assertEquals(ExerciseCategory.CHEST, workout.exercises().getFirst().exerciseCategory());
 		verify(workoutRepository).saveWorkoutSet(20, 1, BigDecimal.valueOf(80), 10, 8, WorkoutSetType.WORKING, true);
 		verify(workoutRepository).saveWorkoutSet(20, 2, BigDecimal.valueOf(80), 10, null, WorkoutSetType.WORKING, false);
 	}

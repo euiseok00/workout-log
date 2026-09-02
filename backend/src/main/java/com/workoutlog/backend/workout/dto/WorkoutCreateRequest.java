@@ -7,6 +7,7 @@ import java.util.List;
 import com.workoutlog.backend.workout.WorkoutSetType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
@@ -50,6 +51,7 @@ public record WorkoutCreateRequest(
 
 		@NotNull
 		@DecimalMin("0.0")
+		@Digits(integer = 3, fraction = 2)
 		BigDecimal weight,
 
 		@NotNull

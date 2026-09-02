@@ -1,13 +1,27 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 const navItems = ['오늘', '기록', '루틴', '운동']
 const weekdays = ['일', '월', '화', '수', '목', '금', '토']
+const monthOptions = Array.from({ length: 12 }, (_, index) => index + 1)
+const categories = [
+  { label: '가슴', value: 'CHEST' },
+  { label: '등', value: 'BACK' },
+  { label: '하체', value: 'LEGS' },
+  { label: '어깨', value: 'SHOULDER' },
+  { label: '이두', value: 'BICEPS' },
+  { label: '삼두', value: 'TRICEPS' },
+  { label: '유산소', value: 'CARDIO' },
+  { label: '기타', value: 'ETC' },
+]
 const setTypeLabels = {
   WARMUP: '웜업',
   WORKING: '본세트',
   TOP: '탑세트',
   FAILURE: '실패',
 }
+const startYear = 2020
+const endYear = Math.max(new Date().getFullYear() + 5, 2030)
+const yearOptions = Array.from({ length: endYear - startYear + 1 }, (_, index) => startYear + index)
 
 function formatDate(date) {
   const year = date.getFullYear()
@@ -31,7 +45,20 @@ function buildCalendarDays(year, month) {
 }
 
 function countSets(workout) {
-  return workout.exercises.reduce((total, exercise) => total + exercise.sets.length, 0)
+  return workout.exercises.reduce(
+    (total, exercise) => total + exercise.sets.filter((set) => set.setType !== 'WARMUP').length,
+    0,
+  )
+}
+
+function categoryLabel(value) {
+  return categories.find((category) => category.value === value)?.label ?? value
+}
+
+function countedSetNumber(sets, setIndex) {
+  if (sets[setIndex].setType === 'WARMUP') return '-'
+
+  return sets.slice(0, setIndex + 1).filter((set) => set.setType !== 'WARMUP').length
 }
 
 function WorkoutRecordPage({ onNavigate = () => {} }) {
@@ -45,9 +72,12 @@ function WorkoutRecordPage({ onNavigate = () => {} }) {
   const [isCalendarLoading, setIsCalendarLoading] = useState(false)
   const [isListLoading, setIsListLoading] = useState(false)
   const [isDetailLoading, setIsDetailLoading] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [calendarError, setCalendarError] = useState('')
   const [listError, setListError] = useState('')
   const [detailError, setDetailError] = useState('')
+  const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false)
+  const deletingRef = useRef(false)
 
   const calendarDays = useMemo(
     () => buildCalendarDays(calendarMonth.year, calendarMonth.month),
@@ -116,6 +146,17 @@ function WorkoutRecordPage({ onNavigate = () => {} }) {
     setSelectedDate(formatDate(next))
   }
 
+  function selectMonth(year, month) {
+    setCalendarMonth({ year, month })
+    setSelectedDate(`${year}-${String(month).padStart(2, '0')}-01`)
+  }
+
+  function goToday() {
+    const now = new Date()
+    setCalendarMonth({ year: now.getFullYear(), month: now.getMonth() + 1 })
+    setSelectedDate(formatDate(now))
+  }
+
   function selectDate(day) {
     const date = `${calendarMonth.year}-${String(calendarMonth.month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
     if (date !== selectedDate) {
@@ -137,6 +178,33 @@ function WorkoutRecordPage({ onNavigate = () => {} }) {
       setDetailError('운동 기록 상세를 불러오지 못했습니다.')
     } finally {
       setIsDetailLoading(false)
+    }
+  }
+
+  async function deleteWorkout() {
+    if (!detail || deletingRef.current) return
+    if (!window.confirm('운동 기록을 삭제할까요?')) return
+
+    deletingRef.current = true
+    setIsDeleting(true)
+    setDetailError('')
+
+    try {
+      const response = await fetch(`/api/workouts/${detail.workoutId}`, { method: 'DELETE' })
+      if (!response.ok) throw new Error()
+
+      const hasOtherWorkoutOnDate = workouts.some((workout) => workout.workoutId !== detail.workoutId)
+      setWorkouts((items) => items.filter((workout) => workout.workoutId !== detail.workoutId))
+      if (!hasOtherWorkoutOnDate) {
+        setRecordDates((dates) => dates.filter((date) => date !== detail.workoutDate))
+      }
+      setDetail(null)
+      setView('calendar')
+    } catch {
+      setDetailError('운동 기록을 삭제하지 못했습니다.')
+    } finally {
+      deletingRef.current = false
+      setIsDeleting(false)
     }
   }
 
@@ -165,6 +233,14 @@ function WorkoutRecordPage({ onNavigate = () => {} }) {
                 <span>총 {totalSets}세트</span>
               </div>
               {detail.memo && <p className="record-memo">{detail.memo}</p>}
+              <button
+                type="button"
+                className="danger-outline-button record-delete-button"
+                disabled={isDeleting}
+                onClick={deleteWorkout}
+              >
+                {isDeleting ? '삭제 중' : '운동 기록 삭제'}
+              </button>
             </section>
 
             {detail.exercises
@@ -176,30 +252,36 @@ function WorkoutRecordPage({ onNavigate = () => {} }) {
                     <div>
                       <span>{exercise.exerciseOrder}</span>
                       <h3>{exercise.exerciseName}</h3>
-                      <p>{exercise.completed ? '완료' : '미완료'}</p>
+                      <p>{categoryLabel(exercise.exerciseCategory)}</p>
                     </div>
                   </div>
                   {exercise.memo && <p className="record-memo">{exercise.memo}</p>}
-                  <div className="record-set-table" aria-label={`${exercise.exerciseName} 세트`}>
-                    <div className="record-set-row record-set-head">
-                      <span>세트</span>
-                      <span>중량</span>
-                      <span>횟수</span>
-                      <span>RPE</span>
-                      <span>유형</span>
-                      <span>완료</span>
-                    </div>
+                  <div className="record-set-list" aria-label={`${exercise.exerciseName} 세트`}>
                     {exercise.sets
                       .slice()
                       .sort((a, b) => a.setOrder - b.setOrder)
-                      .map((set) => (
-                        <div className="record-set-row" key={set.setOrder}>
-                          <span>{set.setOrder}</span>
-                          <span>{set.weight}</span>
-                          <span>{set.reps}</span>
-                          <span>{set.rpe ?? '-'}</span>
-                          <span>{setTypeLabels[set.setType] ?? set.setType}</span>
-                          <span>{set.completed ? '완료' : '-'}</span>
+                      .map((set, setIndex, sets) => (
+                        <div className="record-set-grid" key={set.setOrder}>
+                          <div>
+                            <span>유형</span>
+                            <strong>{setTypeLabels[set.setType] ?? set.setType}</strong>
+                          </div>
+                          <div>
+                            <span>세트</span>
+                            <strong>{countedSetNumber(sets, setIndex)}</strong>
+                          </div>
+                          <div>
+                            <span>중량</span>
+                            <strong>{set.weight}</strong>
+                          </div>
+                          <div>
+                            <span>횟수</span>
+                            <strong>{set.reps}</strong>
+                          </div>
+                          <div>
+                            <span>완료</span>
+                            <strong>{set.completed ? '완료' : '-'}</strong>
+                          </div>
                         </div>
                       ))}
                   </div>
@@ -240,21 +322,71 @@ function WorkoutRecordPage({ onNavigate = () => {} }) {
       <section className="routine-builder" aria-label="운동 기록 달력">
         <section className="routine-section">
           <div className="record-month-header">
-            <button type="button" className="ghost-button" onClick={() => moveMonth(-1)}>
-              이전
+            <button type="button" className="record-today-button" onClick={goToday}>
+              오늘
             </button>
-            <strong>
-              {calendarMonth.year}. {String(calendarMonth.month).padStart(2, '0')}
-            </strong>
-            <button type="button" className="ghost-button" onClick={() => moveMonth(1)}>
-              다음
+            <button type="button" className="record-month-arrow" aria-label="이전 달" onClick={() => moveMonth(-1)}>
+              ‹
+            </button>
+            <div className="record-month-picker">
+              <span>
+                {calendarMonth.year}.{String(calendarMonth.month).padStart(2, '0')}
+              </span>
+              <button
+                type="button"
+                className="record-month-toggle"
+                aria-label="월 선택"
+                aria-expanded={isMonthPickerOpen}
+                onClick={() => setIsMonthPickerOpen((open) => !open)}
+              >
+                {isMonthPickerOpen ? '▴' : '▾'}
+              </button>
+              {isMonthPickerOpen && (
+                <div className="record-month-dropdown">
+                  <div className="record-month-dropdown-header">
+                    <strong>직접 선택</strong>
+                    <button type="button" aria-label="닫기" onClick={() => setIsMonthPickerOpen(false)}>
+                      ×
+                    </button>
+                  </div>
+                  <div className="record-month-options">
+                    <div>
+                      {yearOptions.map((year) => (
+                        <button
+                          type="button"
+                          className={year === calendarMonth.year ? 'active' : ''}
+                          key={year}
+                          onClick={() => selectMonth(year, calendarMonth.month)}
+                        >
+                          {year}년
+                        </button>
+                      ))}
+                    </div>
+                    <div>
+                      {monthOptions.map((month) => (
+                        <button
+                          type="button"
+                          className={month === calendarMonth.month ? 'active' : ''}
+                          key={month}
+                          onClick={() => {
+                            selectMonth(calendarMonth.year, month)
+                            setIsMonthPickerOpen(false)
+                          }}
+                        >
+                          {month}월
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            <button type="button" className="record-month-arrow" aria-label="다음 달" onClick={() => moveMonth(1)}>
+              ›
             </button>
           </div>
           {calendarError && <p className="error-message">{calendarError}</p>}
           {isCalendarLoading && <p className="empty-message">월간 기록을 불러오는 중입니다.</p>}
-          {!isCalendarLoading && !calendarError && recordDates.length === 0 && (
-            <p className="empty-message">이 달에는 운동 기록이 없습니다.</p>
-          )}
           <div className="record-calendar">
             {weekdays.map((weekday) => (
               <div className="record-weekday" key={weekday}>
