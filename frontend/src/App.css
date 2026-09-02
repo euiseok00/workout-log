@@ -133,6 +133,7 @@ button:disabled,
 .set-grid input,
 .set-grid select {
   width: 100%;
+  min-width: 0;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   background: var(--color-surface-input);
@@ -351,10 +352,17 @@ button:disabled,
 .exercise-memo,
 .set-grid label {
   display: grid;
+  min-width: 0;
   gap: 6px;
   color: var(--color-text-secondary);
   font-size: 12px;
   font-weight: 600;
+}
+
+.routine-section input[type='date'] {
+  max-width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .routine-section textarea {
