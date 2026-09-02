@@ -469,7 +469,7 @@ function RoutineManagementPage({ onNavigate = () => {} }) {
 
                       <div className="routine-sets">
                         {exercise.sets.map((set, setIndex) => (
-                          <article className="routine-set-card" key={setIndex}>
+                          <article className="routine-set-card" data-set-type={set.setType} key={setIndex}>
                             <div className="workout-set-grid routine-set-grid">
                               <label>
                                 유형

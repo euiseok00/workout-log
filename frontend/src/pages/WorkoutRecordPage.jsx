@@ -264,7 +264,9 @@ function WorkoutRecordPage({ onNavigate = () => {} }) {
                         <div className="record-set-grid" key={set.setOrder}>
                           <div>
                             <span>유형</span>
-                            <strong>{setTypeLabels[set.setType] ?? set.setType}</strong>
+                            <strong className={`set-type-${set.setType.toLowerCase()}`}>
+                              {setTypeLabels[set.setType] ?? set.setType}
+                            </strong>
                           </div>
                           <div>
                             <span>세트</span>
