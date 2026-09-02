@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import { apiFetch } from '../lib/apiClient.js'
 import { isDbWeightInput } from '../utils/numberInputs.js'
 
 const categories = [
@@ -75,7 +76,7 @@ async function readErrorMessage(response) {
   }
 }
 
-function WorkoutCreatePage({ onNavigate = () => {} }) {
+function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
   const initialDraft = useMemo(() => readDraft(), [])
   const [workoutDate, setWorkoutDate] = useState(initialDraft?.workoutDate ?? today)
   const [memo, setMemo] = useState(initialDraft?.memo ?? '')
@@ -100,7 +101,7 @@ function WorkoutCreatePage({ onNavigate = () => {} }) {
     setErrorMessage('')
 
     try {
-      const response = await fetch('/api/routines')
+      const response = await apiFetch('/api/routines')
       if (!response.ok) throw new Error()
       setRoutines(await response.json())
     } catch {
@@ -116,7 +117,7 @@ function WorkoutCreatePage({ onNavigate = () => {} }) {
 
     try {
       const query = selectedCategory ? `?category=${selectedCategory}` : ''
-      const response = await fetch(`/api/exercises${query}`)
+      const response = await apiFetch(`/api/exercises${query}`)
       if (!response.ok) throw new Error()
       setAvailableExercises(await response.json())
     } catch {
@@ -193,7 +194,7 @@ function WorkoutCreatePage({ onNavigate = () => {} }) {
     setMessage('')
 
     try {
-      const response = await fetch(`/api/routines/${routine.routineId}`)
+      const response = await apiFetch(`/api/routines/${routine.routineId}`)
       if (!response.ok) throw new Error(await readErrorMessage(response))
 
       const routineDetail = await response.json()
@@ -316,7 +317,7 @@ function WorkoutCreatePage({ onNavigate = () => {} }) {
     setErrorMessage('')
 
     try {
-      const response = await fetch('/api/workouts', {
+      const response = await apiFetch('/api/workouts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(buildPayload()),
@@ -325,7 +326,7 @@ function WorkoutCreatePage({ onNavigate = () => {} }) {
       if (!response.ok) throw new Error(await readErrorMessage(response))
 
       const createdWorkout = await response.json()
-      const savedResponse = await fetch(`/api/workouts/${createdWorkout.workoutId}`)
+      const savedResponse = await apiFetch(`/api/workouts/${createdWorkout.workoutId}`)
       if (!savedResponse.ok) throw new Error(await readErrorMessage(savedResponse))
 
       const saved = await savedResponse.json()
@@ -350,6 +351,7 @@ function WorkoutCreatePage({ onNavigate = () => {} }) {
           <p className="eyebrow">TODAY</p>
           <h1>오늘 운동 기록</h1>
         </div>
+        {headerAction}
       </header>
 
       <form className="routine-builder" onSubmit={saveWorkout}>

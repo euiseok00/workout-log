@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
+import { apiFetch } from '../lib/apiClient.js'
+
 const navItems = ['오늘', '기록', '루틴', '운동']
 const weekdays = ['일', '월', '화', '수', '목', '금', '토']
 const monthOptions = Array.from({ length: 12 }, (_, index) => index + 1)
@@ -61,7 +63,7 @@ function countedSetNumber(sets, setIndex) {
   return sets.slice(0, setIndex + 1).filter((set) => set.setType !== 'WARMUP').length
 }
 
-function WorkoutRecordPage({ onNavigate = () => {} }) {
+function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
   const initialMonth = useMemo(() => currentMonth(), [])
   const [calendarMonth, setCalendarMonth] = useState(initialMonth)
   const [recordDates, setRecordDates] = useState([])
@@ -93,7 +95,7 @@ function WorkoutRecordPage({ onNavigate = () => {} }) {
       setCalendarError('')
 
       try {
-        const response = await fetch(`/api/workouts/calendar?year=${calendarMonth.year}&month=${calendarMonth.month}`)
+        const response = await apiFetch(`/api/workouts/calendar?year=${calendarMonth.year}&month=${calendarMonth.month}`)
         if (!response.ok) throw new Error()
 
         const dates = await response.json()
@@ -121,7 +123,7 @@ function WorkoutRecordPage({ onNavigate = () => {} }) {
       setWorkouts([])
 
       try {
-        const response = await fetch(`/api/workouts?date=${selectedDate}`)
+        const response = await apiFetch(`/api/workouts?date=${selectedDate}`)
         if (!response.ok) throw new Error()
 
         const data = await response.json()
@@ -171,7 +173,7 @@ function WorkoutRecordPage({ onNavigate = () => {} }) {
     setIsDetailLoading(true)
 
     try {
-      const response = await fetch(`/api/workouts/${workoutId}`)
+      const response = await apiFetch(`/api/workouts/${workoutId}`)
       if (!response.ok) throw new Error()
       setDetail(await response.json())
     } catch {
@@ -190,7 +192,7 @@ function WorkoutRecordPage({ onNavigate = () => {} }) {
     setDetailError('')
 
     try {
-      const response = await fetch(`/api/workouts/${detail.workoutId}`, { method: 'DELETE' })
+      const response = await apiFetch(`/api/workouts/${detail.workoutId}`, { method: 'DELETE' })
       if (!response.ok) throw new Error()
 
       const hasOtherWorkoutOnDate = workouts.some((workout) => workout.workoutId !== detail.workoutId)
@@ -218,9 +220,12 @@ function WorkoutRecordPage({ onNavigate = () => {} }) {
             <p className="eyebrow">RECORDS</p>
             <h1>{detail?.workoutDate ?? selectedDate}</h1>
           </div>
-          <button type="button" className="ghost-button" onClick={() => setView('calendar')}>
-            뒤로
-          </button>
+          <div className="page-header-actions">
+            <button type="button" className="ghost-button" onClick={() => setView('calendar')}>
+              뒤로
+            </button>
+            {headerAction}
+          </div>
         </header>
 
         {isDetailLoading && <p className="empty-message">상세 기록을 불러오는 중입니다.</p>}
@@ -319,6 +324,7 @@ function WorkoutRecordPage({ onNavigate = () => {} }) {
           <p className="eyebrow">RECORDS</p>
           <h1>운동 기록</h1>
         </div>
+        {headerAction}
       </header>
 
       <section className="routine-builder" aria-label="운동 기록 달력">

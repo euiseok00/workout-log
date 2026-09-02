@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
+import { apiFetch } from '../lib/apiClient.js'
+
 const categories = [
   { label: '전체', value: '' },
   { label: '가슴', value: 'CHEST' },
@@ -14,7 +16,7 @@ const categories = [
 
 const navItems = ['오늘', '기록', '루틴', '운동']
 
-function ExerciseManagementPage({ onNavigate = () => {} }) {
+function ExerciseManagementPage({ headerAction = null, onNavigate = () => {} }) {
   const [exercises, setExercises] = useState([])
   const [searchText, setSearchText] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
@@ -37,7 +39,7 @@ function ExerciseManagementPage({ onNavigate = () => {} }) {
 
       try {
         const query = selectedCategory ? `?category=${selectedCategory}` : ''
-        const response = await fetch(`/api/exercises${query}`)
+        const response = await apiFetch(`/api/exercises${query}`)
 
         if (!response.ok) {
           throw new Error('운동 목록을 불러오지 못했습니다.')
@@ -76,7 +78,7 @@ function ExerciseManagementPage({ onNavigate = () => {} }) {
 
   async function reloadExercises() {
     const query = selectedCategory ? `?category=${selectedCategory}` : ''
-    const response = await fetch(`/api/exercises${query}`)
+    const response = await apiFetch(`/api/exercises${query}`)
 
     if (!response.ok) {
       throw new Error('운동 목록을 불러오지 못했습니다.')
@@ -113,7 +115,7 @@ function ExerciseManagementPage({ onNavigate = () => {} }) {
     setIsSaving(true)
 
     try {
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method: editingExercise ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, category: form.category }),
@@ -140,7 +142,7 @@ function ExerciseManagementPage({ onNavigate = () => {} }) {
     setIsDisabling(true)
 
     try {
-      const response = await fetch(`/api/exercises/${exerciseToDisable.id}/inactive`, {
+      const response = await apiFetch(`/api/exercises/${exerciseToDisable.id}/inactive`, {
         method: 'PATCH',
       })
 
@@ -167,9 +169,12 @@ function ExerciseManagementPage({ onNavigate = () => {} }) {
           <p className="eyebrow">EXERCISES</p>
           <h1>운동 관리</h1>
         </div>
-        <button type="button" className="add-button" onClick={openAddSheet}>
-          운동 추가
-        </button>
+        <div className="page-header-actions">
+          <button type="button" className="add-button" onClick={openAddSheet}>
+            운동 추가
+          </button>
+          {headerAction}
+        </div>
       </header>
 
       <section className="search-section" aria-label="운동 검색">

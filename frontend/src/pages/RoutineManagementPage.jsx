@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import { apiFetch } from '../lib/apiClient.js'
 import { isDbWeightInput } from '../utils/numberInputs.js'
 
 const categories = [
@@ -51,7 +52,7 @@ function toFormExercises(exercises) {
     }))
 }
 
-function RoutineManagementPage({ onNavigate = () => {} }) {
+function RoutineManagementPage({ headerAction = null, onNavigate = () => {} }) {
   const [routines, setRoutines] = useState([])
   const [availableExercises, setAvailableExercises] = useState([])
   const [mode, setMode] = useState('list')
@@ -78,7 +79,7 @@ function RoutineManagementPage({ onNavigate = () => {} }) {
     setListErrorMessage('')
 
     try {
-      const response = await fetch('/api/routines')
+      const response = await apiFetch('/api/routines')
       if (!response.ok) throw new Error()
       setRoutines(await response.json())
     } catch {
@@ -94,7 +95,7 @@ function RoutineManagementPage({ onNavigate = () => {} }) {
 
     try {
       const query = selectedCategory ? `?category=${selectedCategory}` : ''
-      const response = await fetch(`/api/exercises${query}`)
+      const response = await apiFetch(`/api/exercises${query}`)
       if (!response.ok) throw new Error()
       setAvailableExercises(await response.json())
     } catch {
@@ -234,7 +235,7 @@ function RoutineManagementPage({ onNavigate = () => {} }) {
     setIsDetailLoading(true)
 
     try {
-      const response = await fetch(`/api/routines/${routineId}`)
+      const response = await apiFetch(`/api/routines/${routineId}`)
       if (!response.ok) throw new Error()
 
       const routine = await response.json()
@@ -289,7 +290,7 @@ function RoutineManagementPage({ onNavigate = () => {} }) {
     const url = isEditMode ? `/api/routines/${editingRoutineId}` : '/api/routines'
 
     try {
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method: isEditMode ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(buildPayload()),
@@ -318,7 +319,7 @@ function RoutineManagementPage({ onNavigate = () => {} }) {
     setFormMessage('')
 
     try {
-      const response = await fetch(`/api/routines/${editingRoutineId}`, { method: 'DELETE' })
+      const response = await apiFetch(`/api/routines/${editingRoutineId}`, { method: 'DELETE' })
       if (!response.ok) throw new Error()
 
       resetForm()
@@ -343,15 +344,18 @@ function RoutineManagementPage({ onNavigate = () => {} }) {
           <p className="eyebrow">ROUTINES</p>
           <h1>{mode === 'list' ? '루틴' : isEditMode ? '루틴 편집' : '새 루틴'}</h1>
         </div>
-        {mode === 'list' ? (
-          <button type="button" className="add-button" onClick={openCreateMode}>
-            루틴 생성
-          </button>
-        ) : (
-          <button type="button" className="ghost-button" onClick={backToList}>
-            목록
-          </button>
-        )}
+        <div className="page-header-actions">
+          {mode === 'list' ? (
+            <button type="button" className="add-button" onClick={openCreateMode}>
+              루틴 생성
+            </button>
+          ) : (
+            <button type="button" className="ghost-button" onClick={backToList}>
+              목록
+            </button>
+          )}
+          {headerAction}
+        </div>
       </header>
 
       {mode === 'list' ? (
