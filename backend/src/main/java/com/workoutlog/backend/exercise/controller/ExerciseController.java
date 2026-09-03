@@ -2,6 +2,7 @@ package com.workoutlog.backend.exercise.controller;
 
 import java.net.URI;
 import java.util.List;
+import java.util.UUID;
 
 import com.workoutlog.backend.exercise.Exercise;
 import com.workoutlog.backend.exercise.ExerciseCategory;
@@ -12,6 +13,8 @@ import com.workoutlog.backend.exercise.dto.ExerciseUpdateRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -35,9 +38,10 @@ public class ExerciseController {
 
 	@GetMapping
 	public List<ExerciseResponse> findExercises(
+		@AuthenticationPrincipal Jwt jwt,
 		@RequestParam(required = false) ExerciseCategory category
 	) {
-		return exerciseService.findActiveExercises(category)
+		return exerciseService.findActiveExercises(userId(jwt), category)
 			.stream()
 			.map(ExerciseResponse::from)
 			.toList();
@@ -45,9 +49,10 @@ public class ExerciseController {
 
 	@PostMapping
 	public ResponseEntity<ExerciseResponse> createExercise(
+		@AuthenticationPrincipal Jwt jwt,
 		@Valid @RequestBody ExerciseCreateRequest request
 	) {
-		Exercise exercise = exerciseService.createCustomExercise(request.name(), request.category());
+		Exercise exercise = exerciseService.createCustomExercise(userId(jwt), request.name(), request.category());
 		return ResponseEntity
 			.created(URI.create("/api/exercises/" + exercise.id()))
 			.body(ExerciseResponse.from(exercise));
@@ -55,10 +60,12 @@ public class ExerciseController {
 
 	@PutMapping("/{exerciseId}")
 	public ExerciseResponse updateExercise(
+		@AuthenticationPrincipal Jwt jwt,
 		@PathVariable @Positive Integer exerciseId,
 		@Valid @RequestBody ExerciseUpdateRequest request
 	) {
 		Exercise exercise = exerciseService.updateCustomExercise(
+			userId(jwt),
 			exerciseId,
 			request.name(),
 			request.category()
@@ -68,9 +75,14 @@ public class ExerciseController {
 
 	@PatchMapping("/{exerciseId}/inactive")
 	public ResponseEntity<Void> deactivateExercise(
+		@AuthenticationPrincipal Jwt jwt,
 		@PathVariable @Positive Integer exerciseId
 	) {
-		exerciseService.deactivateCustomExercise(exerciseId);
+		exerciseService.deactivateCustomExercise(userId(jwt), exerciseId);
 		return ResponseEntity.noContent().build();
+	}
+
+	private UUID userId(Jwt jwt) {
+		return UUID.fromString(jwt.getSubject());
 	}
 }

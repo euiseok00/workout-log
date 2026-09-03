@@ -3,6 +3,7 @@ package com.workoutlog.backend.exercise.repository;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import com.workoutlog.backend.exercise.Exercise;
 import com.workoutlog.backend.exercise.ExerciseCategory;
@@ -18,14 +19,19 @@ public class ExerciseRepository {
 		this.jdbcClient = jdbcClient;
 	}
 
-	public List<Exercise> findActive(ExerciseCategory category) {
+	public List<Exercise> findActive(UUID userId, ExerciseCategory category) {
 		if (category == null) {
 			return jdbcClient.sql("""
 					SELECT exercise_id, exercise_name, exercise_type, exercise_category, is_active
 					FROM exercises
 					WHERE is_active = TRUE
+					  AND (
+					      exercise_type = 'SYSTEM'
+					      OR (exercise_type = 'CUSTOM' AND user_id = :userId)
+					  )
 					ORDER BY exercise_category, exercise_name, exercise_id
 					""")
+				.param("userId", userId)
 				.query(this::mapExercise)
 				.list();
 		}
@@ -34,9 +40,14 @@ public class ExerciseRepository {
 				SELECT exercise_id, exercise_name, exercise_type, exercise_category, is_active
 				FROM exercises
 				WHERE is_active = TRUE
+				  AND (
+				      exercise_type = 'SYSTEM'
+				      OR (exercise_type = 'CUSTOM' AND user_id = :userId)
+				  )
 				  AND exercise_category = :category
 				ORDER BY exercise_name, exercise_id
 				""")
+			.param("userId", userId)
 			.param("category", category.name())
 			.query(this::mapExercise)
 			.list();
@@ -53,13 +64,45 @@ public class ExerciseRepository {
 			.optional();
 	}
 
-	public Exercise saveCustom(String name, ExerciseCategory category) {
+	public Optional<Exercise> findAvailableById(UUID userId, Integer exerciseId) {
 		return jdbcClient.sql("""
-				INSERT INTO exercises (exercise_name, exercise_type, exercise_category)
-				VALUES (:name, :type, :category)
+				SELECT exercise_id, exercise_name, exercise_type, exercise_category, is_active
+				FROM exercises
+				WHERE exercise_id = :exerciseId
+				  AND (
+				      exercise_type = 'SYSTEM'
+				      OR (exercise_type = 'CUSTOM' AND user_id = :userId)
+				  )
+				""")
+			.param("exerciseId", exerciseId)
+			.param("userId", userId)
+			.query(this::mapExercise)
+			.optional();
+	}
+
+	public Optional<Exercise> findCustomById(UUID userId, Integer exerciseId) {
+		return jdbcClient.sql("""
+				SELECT exercise_id, exercise_name, exercise_type, exercise_category, is_active
+				FROM exercises
+				WHERE exercise_id = :exerciseId
+				  AND exercise_type = :type
+				  AND user_id = :userId
+				""")
+			.param("exerciseId", exerciseId)
+			.param("type", ExerciseType.CUSTOM.name())
+			.param("userId", userId)
+			.query(this::mapExercise)
+			.optional();
+	}
+
+	public Exercise saveCustom(UUID userId, String name, ExerciseCategory category) {
+		return jdbcClient.sql("""
+				INSERT INTO exercises (user_id, exercise_name, exercise_type, exercise_category)
+				VALUES (:userId, :name, :type, :category)
 				RETURNING exercise_id, exercise_name, exercise_type, exercise_category, is_active
 				""")
 			.params(Map.of(
+				"userId", userId,
 				"name", name,
 				"type", ExerciseType.CUSTOM.name(),
 				"category", category.name()
@@ -68,16 +111,20 @@ public class ExerciseRepository {
 			.single();
 	}
 
-	public Exercise update(Integer exerciseId, String name, ExerciseCategory category) {
+	public Exercise update(UUID userId, Integer exerciseId, String name, ExerciseCategory category) {
 		return jdbcClient.sql("""
 				UPDATE exercises
 				SET exercise_name = :name,
 				    exercise_category = :category
 				WHERE exercise_id = :exerciseId
+				  AND exercise_type = :type
+				  AND user_id = :userId
 				RETURNING exercise_id, exercise_name, exercise_type, exercise_category, is_active
 				""")
 			.params(Map.of(
+				"userId", userId,
 				"exerciseId", exerciseId,
+				"type", ExerciseType.CUSTOM.name(),
 				"name", name,
 				"category", category.name()
 			))
@@ -85,13 +132,17 @@ public class ExerciseRepository {
 			.single();
 	}
 
-	public void deactivate(Integer exerciseId) {
+	public void deactivate(UUID userId, Integer exerciseId) {
 		jdbcClient.sql("""
 				UPDATE exercises
 				SET is_active = FALSE
 				WHERE exercise_id = :exerciseId
+				  AND exercise_type = :type
+				  AND user_id = :userId
 				""")
+			.param("userId", userId)
 			.param("exerciseId", exerciseId)
+			.param("type", ExerciseType.CUSTOM.name())
 			.update();
 	}
 

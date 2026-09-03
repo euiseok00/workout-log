@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import com.workoutlog.backend.exercise.Exercise;
 import com.workoutlog.backend.exercise.ExerciseNotFoundException;
@@ -46,13 +47,14 @@ public class WorkoutService {
 
 	@Transactional
 	public WorkoutResponse createWorkout(
+		UUID userId,
 		LocalDate workoutDate,
 		String memo,
 		List<WorkoutExerciseRequest> workoutExercises
 	) {
-		Integer workoutOrder = workoutRepository.findNextWorkoutOrder(workoutDate);
-		List<ExerciseToSave> exercises = validateWorkoutExercises(workoutExercises);
-		Integer workoutId = workoutRepository.saveWorkout(workoutDate, workoutOrder, memo);
+		Integer workoutOrder = workoutRepository.findNextWorkoutOrder(userId, workoutDate);
+		List<ExerciseToSave> exercises = validateWorkoutExercises(userId, workoutExercises);
+		Integer workoutId = workoutRepository.saveWorkout(userId, workoutDate, workoutOrder, memo);
 
 		for (ExerciseToSave exercise : exercises) {
 			Integer workoutExerciseId = workoutRepository.saveWorkoutExercise(
@@ -91,14 +93,16 @@ public class WorkoutService {
 
 	@Transactional
 	public WorkoutResponse createWorkoutFromRoutine(
+		UUID userId,
 		Integer routineId,
 		LocalDate workoutDate,
 		String memo
 	) {
-		Integer workoutOrder = workoutRepository.findNextWorkoutOrder(workoutDate);
-		RoutineDetail routine = routineRepository.findDetailById(routineId)
+		Integer workoutOrder = workoutRepository.findNextWorkoutOrder(userId, workoutDate);
+		RoutineDetail routine = routineRepository.findDetailById(userId, routineId)
 			.orElseThrow(() -> new RoutineNotFoundException(routineId));
-		Integer workoutId = workoutRepository.saveWorkout(workoutDate, workoutOrder, memo);
+		validateRoutineExercises(userId, routine.exercises());
+		Integer workoutId = workoutRepository.saveWorkout(userId, workoutDate, workoutOrder, memo);
 		List<WorkoutExerciseResponse> exerciseResponses = new ArrayList<>();
 
 		for (RoutineExerciseDetail routineExercise : routine.exercises()) {
@@ -154,33 +158,36 @@ public class WorkoutService {
 	}
 
 	@Transactional(readOnly = true)
-	public WorkoutResponse findWorkout(Integer workoutId) {
-		return workoutRepository.findById(workoutId)
+	public WorkoutResponse findWorkout(UUID userId, Integer workoutId) {
+		return workoutRepository.findById(userId, workoutId)
 			.orElseThrow(() -> new WorkoutNotFoundException(workoutId));
 	}
 
 	@Transactional(readOnly = true)
-	public List<LocalDate> findWorkoutDates(Integer year, Integer month) {
+	public List<LocalDate> findWorkoutDates(UUID userId, Integer year, Integer month) {
 		LocalDate startDate = LocalDate.of(year, month, 1);
 		LocalDate nextMonthStartDate = startDate.plusMonths(1);
 
-		return workoutRepository.findWorkoutDates(startDate, nextMonthStartDate);
+		return workoutRepository.findWorkoutDates(userId, startDate, nextMonthStartDate);
 	}
 
 	@Transactional(readOnly = true)
-	public List<WorkoutSummaryResponse> findWorkoutSummariesByDate(LocalDate date) {
-		return workoutRepository.findSummariesByDate(date);
+	public List<WorkoutSummaryResponse> findWorkoutSummariesByDate(UUID userId, LocalDate date) {
+		return workoutRepository.findSummariesByDate(userId, date);
 	}
 
 	@Transactional
-	public void deleteWorkout(Integer workoutId) {
-		int deletedCount = workoutRepository.deleteById(workoutId);
+	public void deleteWorkout(UUID userId, Integer workoutId) {
+		int deletedCount = workoutRepository.deleteById(userId, workoutId);
 		if (deletedCount == 0) {
 			throw new WorkoutNotFoundException(workoutId);
 		}
 	}
 
-	private List<ExerciseToSave> validateWorkoutExercises(List<WorkoutExerciseRequest> workoutExercises) {
+	private List<ExerciseToSave> validateWorkoutExercises(
+		UUID userId,
+		List<WorkoutExerciseRequest> workoutExercises
+	) {
 		Set<Integer> exerciseOrders = new HashSet<>();
 		List<ExerciseToSave> exercises = new ArrayList<>();
 
@@ -191,7 +198,7 @@ public class WorkoutService {
 
 			validateSetOrders(workoutExercise.sets());
 
-			Exercise exercise = exerciseRepository.findById(workoutExercise.exerciseId())
+			Exercise exercise = exerciseRepository.findAvailableById(userId, workoutExercise.exerciseId())
 				.orElseThrow(() -> new ExerciseNotFoundException(workoutExercise.exerciseId()));
 
 			if (!exercise.active()) {
@@ -208,6 +215,17 @@ public class WorkoutService {
 		}
 
 		return exercises;
+	}
+
+	private void validateRoutineExercises(UUID userId, List<RoutineExerciseDetail> routineExercises) {
+		for (RoutineExerciseDetail routineExercise : routineExercises) {
+			Exercise exercise = exerciseRepository.findAvailableById(userId, routineExercise.exerciseId())
+				.orElseThrow(() -> new ExerciseNotFoundException(routineExercise.exerciseId()));
+
+			if (!exercise.active()) {
+				throw new WorkoutOperationException("Inactive exercises cannot be added to workouts.");
+			}
+		}
 	}
 
 	private void validateSetOrders(List<WorkoutSetRequest> sets) {

@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import com.workoutlog.backend.exercise.ExerciseCategory;
 import com.workoutlog.backend.workout.WorkoutExerciseResponse;
@@ -25,19 +26,21 @@ public class WorkoutRepository {
 		this.jdbcClient = jdbcClient;
 	}
 
-	public Integer findNextWorkoutOrder(LocalDate workoutDate) {
+	public Integer findNextWorkoutOrder(UUID userId, LocalDate workoutDate) {
 		return jdbcClient.sql("""
 				SELECT COALESCE(MAX(workout_order), 0) + 1
 				FROM workouts
-				WHERE workout_date = :workoutDate
+				WHERE user_id = :userId
+				  AND workout_date = :workoutDate
 				""")
+			.param("userId", userId)
 			.param("workoutDate", workoutDate)
 			.query(Integer.class)
 			.single();
 	}
 
-	public Optional<WorkoutResponse> findById(Integer workoutId) {
-		Optional<WorkoutHeader> header = findHeaderById(workoutId);
+	public Optional<WorkoutResponse> findById(UUID userId, Integer workoutId) {
+		Optional<WorkoutHeader> header = findHeaderById(userId, workoutId);
 		if (header.isEmpty()) {
 			return Optional.empty();
 		}
@@ -112,21 +115,23 @@ public class WorkoutRepository {
 		));
 	}
 
-	public List<LocalDate> findWorkoutDates(LocalDate startDate, LocalDate nextMonthStartDate) {
+	public List<LocalDate> findWorkoutDates(UUID userId, LocalDate startDate, LocalDate nextMonthStartDate) {
 		return jdbcClient.sql("""
 				SELECT DISTINCT workout_date
 				FROM workouts
-				WHERE workout_date >= :startDate
+				WHERE user_id = :userId
+				  AND workout_date >= :startDate
 				  AND workout_date < :nextMonthStartDate
 				ORDER BY workout_date
 				""")
+			.param("userId", userId)
 			.param("startDate", startDate)
 			.param("nextMonthStartDate", nextMonthStartDate)
 			.query(LocalDate.class)
 			.list();
 	}
 
-	public List<WorkoutSummaryResponse> findSummariesByDate(LocalDate date) {
+	public List<WorkoutSummaryResponse> findSummariesByDate(UUID userId, LocalDate date) {
 		return jdbcClient.sql("""
 				SELECT w.workout_id,
 				       w.workout_date,
@@ -137,10 +142,12 @@ public class WorkoutRepository {
 				FROM workouts w
 				LEFT JOIN workout_exercises we ON w.workout_id = we.workout_id
 				LEFT JOIN workout_sets ws ON we.workout_exercise_id = ws.workout_exercise_id
-				WHERE w.workout_date = :date
+				WHERE w.user_id = :userId
+				  AND w.workout_date = :date
 				GROUP BY w.workout_id, w.workout_date, w.workout_order, w.memo
 				ORDER BY w.workout_order
 				""")
+			.param("userId", userId)
 			.param("date", date)
 			.query((rs, rowNum) -> new WorkoutSummaryResponse(
 				rs.getInt("workout_id"),
@@ -153,12 +160,13 @@ public class WorkoutRepository {
 			.list();
 	}
 
-	public Integer saveWorkout(LocalDate workoutDate, Integer workoutOrder, String memo) {
+	public Integer saveWorkout(UUID userId, LocalDate workoutDate, Integer workoutOrder, String memo) {
 		return jdbcClient.sql("""
-				INSERT INTO workouts (workout_date, workout_order, memo)
-				VALUES (:workoutDate, :workoutOrder, :memo)
+				INSERT INTO workouts (user_id, workout_date, workout_order, memo)
+				VALUES (:userId, :workoutDate, :workoutOrder, :memo)
 				RETURNING workout_id
 				""")
+			.param("userId", userId)
 			.param("workoutDate", workoutDate)
 			.param("workoutOrder", workoutOrder)
 			.param("memo", memo)
@@ -242,21 +250,25 @@ public class WorkoutRepository {
 			.update();
 	}
 
-	public int deleteById(Integer workoutId) {
+	public int deleteById(UUID userId, Integer workoutId) {
 		return jdbcClient.sql("""
 				DELETE FROM workouts
 				WHERE workout_id = :workoutId
+				  AND user_id = :userId
 				""")
+			.param("userId", userId)
 			.param("workoutId", workoutId)
 			.update();
 	}
 
-	private Optional<WorkoutHeader> findHeaderById(Integer workoutId) {
+	private Optional<WorkoutHeader> findHeaderById(UUID userId, Integer workoutId) {
 		return jdbcClient.sql("""
 				SELECT workout_id, workout_date, workout_order, memo
 				FROM workouts
 				WHERE workout_id = :workoutId
+				  AND user_id = :userId
 				""")
+			.param("userId", userId)
 			.param("workoutId", workoutId)
 			.query((rs, rowNum) -> new WorkoutHeader(
 				rs.getInt("workout_id"),

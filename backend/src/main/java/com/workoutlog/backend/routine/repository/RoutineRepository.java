@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import com.workoutlog.backend.exercise.ExerciseCategory;
 import com.workoutlog.backend.routine.RoutineDetail;
@@ -27,7 +28,7 @@ public class RoutineRepository {
 		this.jdbcClient = jdbcClient;
 	}
 
-	public List<RoutineSummary> findAll() {
+	public List<RoutineSummary> findAll(UUID userId) {
 		return jdbcClient.sql("""
 				SELECT r.routine_id,
 				       r.routine_name,
@@ -40,9 +41,11 @@ public class RoutineRepository {
 				FROM routines r
 				LEFT JOIN routine_exercises re ON r.routine_id = re.routine_id
 				LEFT JOIN exercises e ON re.exercise_id = e.exercise_id
+				WHERE r.user_id = :userId
 				GROUP BY r.routine_id, r.routine_name, r.routine_memo
 				ORDER BY r.routine_id DESC
 				""")
+			.param("userId", userId)
 			.query((rs, rowNum) -> new RoutineSummary(
 				rs.getInt("routine_id"),
 				rs.getString("routine_name"),
@@ -52,8 +55,18 @@ public class RoutineRepository {
 			.list();
 	}
 
+	public Optional<RoutineDetail> findDetailById(UUID userId, Integer routineId) {
+		return findDetailById(routineId, findHeaderById(userId, routineId));
+	}
+
 	public Optional<RoutineDetail> findDetailById(Integer routineId) {
-		Optional<RoutineHeader> routineHeader = findHeaderById(routineId);
+		return findDetailById(routineId, findHeaderById(routineId));
+	}
+
+	private Optional<RoutineDetail> findDetailById(
+		Integer routineId,
+		Optional<RoutineHeader> routineHeader
+	) {
 		if (routineHeader.isEmpty()) {
 			return Optional.empty();
 		}
@@ -119,38 +132,43 @@ public class RoutineRepository {
 		));
 	}
 
-	public Integer saveRoutine(String routineName, String routineMemo) {
+	public Integer saveRoutine(UUID userId, String routineName, String routineMemo) {
 		return jdbcClient.sql("""
-				INSERT INTO routines (routine_name, routine_memo)
-				VALUES (:routineName, :routineMemo)
+				INSERT INTO routines (user_id, routine_name, routine_memo)
+				VALUES (:userId, :routineName, :routineMemo)
 				RETURNING routine_id
 				""")
+			.param("userId", userId)
 			.param("routineName", routineName)
 			.param("routineMemo", routineMemo)
 			.query(Integer.class)
 			.single();
 	}
 
-	public boolean existsById(Integer routineId) {
+	public boolean existsById(UUID userId, Integer routineId) {
 		return jdbcClient.sql("""
 				SELECT EXISTS (
 				    SELECT 1
 				    FROM routines
 				    WHERE routine_id = :routineId
+				      AND user_id = :userId
 				)
 				""")
+			.param("userId", userId)
 			.param("routineId", routineId)
 			.query(Boolean.class)
 			.single();
 	}
 
-	public void updateRoutine(Integer routineId, String routineName, String routineMemo) {
+	public void updateRoutine(UUID userId, Integer routineId, String routineName, String routineMemo) {
 		jdbcClient.sql("""
 				UPDATE routines
 				SET routine_name = :routineName,
 				    routine_memo = :routineMemo
 				WHERE routine_id = :routineId
+				  AND user_id = :userId
 				""")
+			.param("userId", userId)
 			.param("routineId", routineId)
 			.param("routineName", routineName)
 			.param("routineMemo", routineMemo)
@@ -204,13 +222,32 @@ public class RoutineRepository {
 			.update();
 	}
 
-	public int deleteById(Integer routineId) {
+	public int deleteById(UUID userId, Integer routineId) {
 		return jdbcClient.sql("""
 				DELETE FROM routines
 				WHERE routine_id = :routineId
+				  AND user_id = :userId
 				""")
+			.param("userId", userId)
 			.param("routineId", routineId)
 			.update();
+	}
+
+	private Optional<RoutineHeader> findHeaderById(UUID userId, Integer routineId) {
+		return jdbcClient.sql("""
+				SELECT routine_id, routine_name, routine_memo
+				FROM routines
+				WHERE routine_id = :routineId
+				  AND user_id = :userId
+				""")
+			.param("userId", userId)
+			.param("routineId", routineId)
+			.query((rs, rowNum) -> new RoutineHeader(
+				rs.getInt("routine_id"),
+				rs.getString("routine_name"),
+				rs.getString("routine_memo")
+			))
+			.optional();
 	}
 
 	private Optional<RoutineHeader> findHeaderById(Integer routineId) {

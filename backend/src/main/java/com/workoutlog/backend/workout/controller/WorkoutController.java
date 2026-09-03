@@ -3,6 +3,7 @@ package com.workoutlog.backend.workout.controller;
 import java.net.URI;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 import com.workoutlog.backend.workout.WorkoutResponse;
 import com.workoutlog.backend.workout.WorkoutSummaryResponse;
@@ -16,6 +17,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -38,9 +41,12 @@ public class WorkoutController {
 
 	@PostMapping
 	public ResponseEntity<WorkoutResponse> createWorkout(
+		@AuthenticationPrincipal Jwt jwt,
 		@Valid @RequestBody WorkoutCreateRequest request
 	) {
+		UUID userId = UUID.fromString(jwt.getSubject());
 		WorkoutResponse workout = workoutService.createWorkout(
+			userId,
 			request.workoutDate(),
 			request.memo(),
 			request.exercises()
@@ -53,9 +59,12 @@ public class WorkoutController {
 
 	@PostMapping("/from-routine")
 	public ResponseEntity<WorkoutResponse> createWorkoutFromRoutine(
+		@AuthenticationPrincipal Jwt jwt,
 		@Valid @RequestBody WorkoutCreateFromRoutineRequest request
 	) {
+		UUID userId = UUID.fromString(jwt.getSubject());
 		WorkoutResponse workout = workoutService.createWorkoutFromRoutine(
+			userId,
 			request.routineId(),
 			request.workoutDate(),
 			request.memo()
@@ -68,31 +77,39 @@ public class WorkoutController {
 
 	@GetMapping("/calendar")
 	public List<LocalDate> findWorkoutCalendarDates(
+		@AuthenticationPrincipal Jwt jwt,
 		@RequestParam @NotNull Integer year,
 		@RequestParam @NotNull @Min(1) @Max(12) Integer month
 	) {
-		return workoutService.findWorkoutDates(year, month);
+		UUID userId = UUID.fromString(jwt.getSubject());
+		return workoutService.findWorkoutDates(userId, year, month);
 	}
 
 	@GetMapping
 	public List<WorkoutSummaryResponse> findWorkoutsByDate(
+		@AuthenticationPrincipal Jwt jwt,
 		@RequestParam @NotNull @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
 	) {
-		return workoutService.findWorkoutSummariesByDate(date);
+		UUID userId = UUID.fromString(jwt.getSubject());
+		return workoutService.findWorkoutSummariesByDate(userId, date);
 	}
 
 	@GetMapping("/{workoutId}")
 	public WorkoutResponse findWorkout(
+		@AuthenticationPrincipal Jwt jwt,
 		@PathVariable Integer workoutId
 	) {
-		return workoutService.findWorkout(workoutId);
+		UUID userId = UUID.fromString(jwt.getSubject());
+		return workoutService.findWorkout(userId, workoutId);
 	}
 
 	@DeleteMapping("/{workoutId}")
 	public ResponseEntity<Void> deleteWorkout(
+		@AuthenticationPrincipal Jwt jwt,
 		@PathVariable @Positive Integer workoutId
 	) {
-		workoutService.deleteWorkout(workoutId);
+		UUID userId = UUID.fromString(jwt.getSubject());
+		workoutService.deleteWorkout(userId, workoutId);
 		return ResponseEntity.noContent().build();
 	}
 }

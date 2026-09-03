@@ -1,12 +1,12 @@
 package com.workoutlog.backend.exercise.service;
 
 import java.util.List;
+import java.util.UUID;
 
 import com.workoutlog.backend.exercise.Exercise;
 import com.workoutlog.backend.exercise.ExerciseCategory;
 import com.workoutlog.backend.exercise.ExerciseNotFoundException;
 import com.workoutlog.backend.exercise.ExerciseOperationException;
-import com.workoutlog.backend.exercise.ExerciseType;
 import com.workoutlog.backend.exercise.repository.ExerciseRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,43 +20,35 @@ public class ExerciseService {
 	}
 
 	@Transactional(readOnly = true)
-	public List<Exercise> findActiveExercises(ExerciseCategory category) {
-		return exerciseRepository.findActive(category);
+	public List<Exercise> findActiveExercises(UUID userId, ExerciseCategory category) {
+		return exerciseRepository.findActive(userId, category);
 	}
 
 	@Transactional
-	public Exercise createCustomExercise(String name, ExerciseCategory category) {
-		return exerciseRepository.saveCustom(name, category);
+	public Exercise createCustomExercise(UUID userId, String name, ExerciseCategory category) {
+		return exerciseRepository.saveCustom(userId, name, category);
 	}
 
 	@Transactional
-	public Exercise updateCustomExercise(Integer exerciseId, String name, ExerciseCategory category) {
-		Exercise exercise = getExercise(exerciseId);
-		validateCustomExercise(exercise);
+	public Exercise updateCustomExercise(UUID userId, Integer exerciseId, String name, ExerciseCategory category) {
+		Exercise exercise = getCustomExercise(userId, exerciseId);
 		validateActiveExercise(exercise);
 
-		return exerciseRepository.update(exerciseId, name, category);
+		return exerciseRepository.update(userId, exerciseId, name, category);
 	}
 
 	@Transactional
-	public void deactivateCustomExercise(Integer exerciseId) {
-		Exercise exercise = getExercise(exerciseId);
-		validateCustomExercise(exercise);
+	public void deactivateCustomExercise(UUID userId, Integer exerciseId) {
+		Exercise exercise = getCustomExercise(userId, exerciseId);
 
 		if (exercise.active()) {
-			exerciseRepository.deactivate(exerciseId);
+			exerciseRepository.deactivate(userId, exerciseId);
 		}
 	}
 
-	private Exercise getExercise(Integer exerciseId) {
-		return exerciseRepository.findById(exerciseId)
+	private Exercise getCustomExercise(UUID userId, Integer exerciseId) {
+		return exerciseRepository.findCustomById(userId, exerciseId)
 			.orElseThrow(() -> new ExerciseNotFoundException(exerciseId));
-	}
-
-	private void validateCustomExercise(Exercise exercise) {
-		if (exercise.type() != ExerciseType.CUSTOM) {
-			throw new ExerciseOperationException("Only custom exercises can be changed.");
-		}
 	}
 
 	private void validateActiveExercise(Exercise exercise) {

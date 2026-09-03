@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import com.workoutlog.backend.exercise.Exercise;
 import com.workoutlog.backend.exercise.ExerciseNotFoundException;
@@ -30,24 +31,25 @@ public class RoutineService {
 	}
 
 	@Transactional(readOnly = true)
-	public List<RoutineSummary> findRoutines() {
-		return routineRepository.findAll();
+	public List<RoutineSummary> findRoutines(UUID userId) {
+		return routineRepository.findAll(userId);
 	}
 
 	@Transactional(readOnly = true)
-	public RoutineDetail findRoutineDetail(Integer routineId) {
-		return routineRepository.findDetailById(routineId)
+	public RoutineDetail findRoutineDetail(UUID userId, Integer routineId) {
+		return routineRepository.findDetailById(userId, routineId)
 			.orElseThrow(() -> new RoutineNotFoundException(routineId));
 	}
 
 	@Transactional
 	public RoutineSummary createRoutine(
+		UUID userId,
 		String routineName,
 		String routineMemo,
 		List<RoutineExerciseRequest> routineExercises
 	) {
-		List<ExerciseWithOrder> exercises = validateRoutineExercises(routineExercises);
-		Integer routineId = routineRepository.saveRoutine(routineName, routineMemo);
+		List<ExerciseWithOrder> exercises = validateRoutineExercises(userId, routineExercises);
+		Integer routineId = routineRepository.saveRoutine(userId, routineName, routineMemo);
 		saveRoutineDetails(routineId, routineExercises);
 
 		return toRoutineSummary(routineId, routineName, routineMemo, exercises);
@@ -55,14 +57,15 @@ public class RoutineService {
 
 	@Transactional
 	public RoutineSummary updateRoutine(
+		UUID userId,
 		Integer routineId,
 		String routineName,
 		String routineMemo,
 		List<RoutineExerciseRequest> routineExercises
 	) {
-		validateRoutineExists(routineId);
-		List<ExerciseWithOrder> exercises = validateRoutineExercises(routineExercises);
-		routineRepository.updateRoutine(routineId, routineName, routineMemo);
+		validateRoutineExists(userId, routineId);
+		List<ExerciseWithOrder> exercises = validateRoutineExercises(userId, routineExercises);
+		routineRepository.updateRoutine(userId, routineId, routineName, routineMemo);
 		routineRepository.deleteRoutineExercisesByRoutineId(routineId);
 		saveRoutineDetails(routineId, routineExercises);
 
@@ -70,8 +73,8 @@ public class RoutineService {
 	}
 
 	@Transactional
-	public void deleteRoutine(Integer routineId) {
-		int deletedCount = routineRepository.deleteById(routineId);
+	public void deleteRoutine(UUID userId, Integer routineId) {
+		int deletedCount = routineRepository.deleteById(userId, routineId);
 		if (deletedCount == 0) {
 			throw new RoutineNotFoundException(routineId);
 		}
@@ -119,13 +122,16 @@ public class RoutineService {
 		);
 	}
 
-	private void validateRoutineExists(Integer routineId) {
-		if (!routineRepository.existsById(routineId)) {
+	private void validateRoutineExists(UUID userId, Integer routineId) {
+		if (!routineRepository.existsById(userId, routineId)) {
 			throw new RoutineNotFoundException(routineId);
 		}
 	}
 
-	private List<ExerciseWithOrder> validateRoutineExercises(List<RoutineExerciseRequest> routineExercises) {
+	private List<ExerciseWithOrder> validateRoutineExercises(
+		UUID userId,
+		List<RoutineExerciseRequest> routineExercises
+	) {
 		Set<Integer> exerciseOrders = new HashSet<>();
 		List<ExerciseWithOrder> exercises = new ArrayList<>();
 
@@ -136,7 +142,7 @@ public class RoutineService {
 
 			validateSetOrders(routineExercise.sets());
 
-			Exercise exercise = exerciseRepository.findById(routineExercise.exerciseId())
+			Exercise exercise = exerciseRepository.findAvailableById(userId, routineExercise.exerciseId())
 				.orElseThrow(() -> new ExerciseNotFoundException(routineExercise.exerciseId()));
 
 			if (!exercise.active()) {
