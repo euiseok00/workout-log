@@ -4,6 +4,7 @@ import { supabase } from './lib/supabaseClient.js'
 import AuthPage from './pages/AuthPage.jsx'
 import ExerciseManagementPage from './pages/ExerciseManagementPage.jsx'
 import RoutineManagementPage from './pages/RoutineManagementPage.jsx'
+import StatisticsPage from './pages/StatisticsPage.jsx'
 import WorkoutCreatePage from './pages/WorkoutCreatePage.jsx'
 import WorkoutRecordPage from './pages/WorkoutRecordPage.jsx'
 import './App.css'
@@ -94,6 +95,7 @@ function App() {
 
   let pageComponent = <WorkoutCreatePage headerAction={headerAction} onNavigate={setPage} />
   if (page === 'record') pageComponent = <WorkoutRecordPage headerAction={headerAction} onNavigate={setPage} />
+  if (page === 'statistics') pageComponent = <StatisticsPage headerAction={headerAction} onNavigate={setPage} />
   if (page === 'routine') pageComponent = <RoutineManagementPage headerAction={headerAction} onNavigate={setPage} />
   if (page === 'exercise') pageComponent = <ExerciseManagementPage headerAction={headerAction} onNavigate={setPage} />
 

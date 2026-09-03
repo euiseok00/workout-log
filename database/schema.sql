@@ -96,12 +96,25 @@ CREATE TABLE public.workout_exercises (
     workout_id INTEGER NOT NULL REFERENCES public.workouts(workout_id) ON DELETE CASCADE,
     exercise_id INTEGER NOT NULL REFERENCES public.exercises(exercise_id),
     exercise_name VARCHAR(50) NOT NULL,
+    exercise_category VARCHAR(10) NOT NULL,
     exercise_order INTEGER NOT NULL,
     memo TEXT,
     completed BOOLEAN NOT NULL DEFAULT FALSE,
 
     UNIQUE (workout_id, exercise_order),
-    CHECK (exercise_order >= 1)
+    CHECK (exercise_order >= 1),
+    CHECK (
+        exercise_category IN (
+            'CHEST',
+            'BACK',
+            'LEGS',
+            'SHOULDER',
+            'BICEPS',
+            'TRICEPS',
+            'CARDIO',
+            'ETC'
+        )
+    )
 );
 
 CREATE TABLE public.workout_sets (

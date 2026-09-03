@@ -4,5 +4,7 @@ public enum RoutineSetType {
 	WARMUP,
 	WORKING,
 	TOP,
-	FAILURE
+	FAILURE,
+	BACKOFF,
+	DROP
 }

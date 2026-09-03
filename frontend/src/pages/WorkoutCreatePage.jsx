@@ -17,12 +17,20 @@ const categories = [
 
 const setTypes = [
   { label: '웜업', value: 'WARMUP' },
-  { label: '본세트', value: 'WORKING' },
+  { label: '워킹', value: 'WORKING' },
   { label: '탑세트', value: 'TOP' },
   { label: '실패', value: 'FAILURE' },
+  { label: '백오프', value: 'BACKOFF' },
+  { label: '드랍', value: 'DROP' },
 ]
 
-const navItems = ['오늘', '기록', '루틴', '운동']
+const navItems = [
+  { label: '대시보드', page: 'record' },
+  { label: '기록추가', page: 'today' },
+  { label: '통계', page: 'statistics' },
+  { label: '루틴', page: 'routine' },
+  { label: '운동관리', page: 'exercise' },
+]
 const draftStorageKey = 'workout-log:workout-draft'
 
 function today() {
@@ -90,11 +98,11 @@ function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
   const [isRoutineLoading, setIsRoutineLoading] = useState(false)
   const [isExerciseLoading, setIsExerciseLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [savedWorkout, setSavedWorkout] = useState(null)
-  const [message, setMessage] = useState('')
+  const [toastMessage, setToastMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const savingRef = useRef(false)
   const loadingRoutineRef = useRef(false)
+  const toastTimerRef = useRef(null)
 
   const loadRoutines = useCallback(async () => {
     setIsRoutineLoading(true)
@@ -128,11 +136,6 @@ function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
   }, [selectedCategory])
 
   useEffect(() => {
-    if (savedWorkout) {
-      localStorage.removeItem(draftStorageKey)
-      return
-    }
-
     const hasDraft = memo.trim() || selectedExercises.length > 0 || workoutDate !== today()
     if (!hasDraft) {
       localStorage.removeItem(draftStorageKey)
@@ -140,7 +143,15 @@ function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
     }
 
     localStorage.setItem(draftStorageKey, JSON.stringify({ workoutDate, memo, selectedExercises }))
-  }, [memo, savedWorkout, selectedExercises, workoutDate])
+  }, [memo, selectedExercises, workoutDate])
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (isRoutineSheetOpen) {
@@ -191,17 +202,15 @@ function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
     loadingRoutineRef.current = true
     setIsRoutineLoading(true)
     setErrorMessage('')
-    setMessage('')
+    setToastMessage('')
 
     try {
       const response = await apiFetch(`/api/routines/${routine.routineId}`)
       if (!response.ok) throw new Error(await readErrorMessage(response))
 
       const routineDetail = await response.json()
-      setSavedWorkout(null)
       setSelectedExercises(toWorkoutExercises(routineDetail.exercises))
       setIsRoutineSheetOpen(false)
-      setMessage('루틴을 운동 기록에 불러왔습니다.')
     } catch {
       setErrorMessage('루틴 상세를 불러오지 못했습니다.')
     } finally {
@@ -302,10 +311,6 @@ function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
     event.preventDefault()
 
     if (savingRef.current) return
-    if (savedWorkout) {
-      setErrorMessage('이미 저장된 운동 기록입니다.')
-      return
-    }
     if (selectedExercises.length === 0) {
       setErrorMessage('운동을 1개 이상 추가해주세요.')
       return
@@ -313,7 +318,7 @@ function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
 
     savingRef.current = true
     setIsSaving(true)
-    setMessage('')
+    setToastMessage('')
     setErrorMessage('')
 
     try {
@@ -325,16 +330,17 @@ function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
 
       if (!response.ok) throw new Error(await readErrorMessage(response))
 
-      const createdWorkout = await response.json()
-      const savedResponse = await apiFetch(`/api/workouts/${createdWorkout.workoutId}`)
-      if (!savedResponse.ok) throw new Error(await readErrorMessage(savedResponse))
-
-      const saved = await savedResponse.json()
-      setWorkoutDate(saved.workoutDate)
-      setMemo(saved.memo ?? '')
-      setSelectedExercises(toWorkoutExercises(saved.exercises))
-      setSavedWorkout(saved)
-      setMessage('운동 기록을 저장했습니다.')
+      setWorkoutDate(today())
+      setMemo('')
+      setSelectedExercises([])
+      localStorage.removeItem(draftStorageKey)
+      setToastMessage('운동 기록이 저장되었습니다.')
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current)
+      }
+      toastTimerRef.current = setTimeout(() => {
+        setToastMessage('')
+      }, 2400)
     } catch (error) {
       const reason = error.message ? ` (${error.message})` : ''
       setErrorMessage(`운동 기록을 저장하지 못했습니다.${reason}`)
@@ -354,8 +360,13 @@ function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
         {headerAction}
       </header>
 
+      {toastMessage && (
+        <div className="save-toast" role="status" aria-live="polite">
+          {toastMessage}
+        </div>
+      )}
+
       <form className="routine-builder" onSubmit={saveWorkout}>
-        {message && <p className="success-message">{message}</p>}
         {errorMessage && <p className="error-message">{errorMessage}</p>}
 
         <section className="routine-section" aria-label="운동 기록 기본 정보">
@@ -375,11 +386,6 @@ function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
               운동 직접 추가
             </button>
           </div>
-          {savedWorkout && (
-            <p className="saved-workout-summary">
-              저장 확인 · ID {savedWorkout.workoutId} · {savedWorkout.workoutOrder}번째 기록
-            </p>
-          )}
         </section>
 
         <section className="routine-section" aria-label="운동 목록">
@@ -504,15 +510,11 @@ function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
         {navItems.map((item) => (
           <button
             type="button"
-            className={item === '오늘' ? 'active' : ''}
-            key={item}
-            onClick={() => {
-              if (item === '기록') onNavigate('record')
-              if (item === '루틴') onNavigate('routine')
-              if (item === '운동') onNavigate('exercise')
-            }}
+            className={item.page === 'today' ? 'active' : ''}
+            key={item.page}
+            onClick={() => onNavigate(item.page)}
           >
-            {item}
+            {item.label}
           </button>
         ))}
       </nav>

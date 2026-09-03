@@ -4,5 +4,7 @@ public enum WorkoutSetType {
 	WARMUP,
 	WORKING,
 	TOP,
-	FAILURE
+	FAILURE,
+	BACKOFF,
+	DROP
 }

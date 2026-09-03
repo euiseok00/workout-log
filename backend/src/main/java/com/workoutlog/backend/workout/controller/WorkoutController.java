@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -101,6 +102,22 @@ public class WorkoutController {
 	) {
 		UUID userId = UUID.fromString(jwt.getSubject());
 		return workoutService.findWorkout(userId, workoutId);
+	}
+
+	@PutMapping("/{workoutId}")
+	public WorkoutResponse updateWorkout(
+		@AuthenticationPrincipal Jwt jwt,
+		@PathVariable @Positive Integer workoutId,
+		@Valid @RequestBody WorkoutCreateRequest request
+	) {
+		UUID userId = UUID.fromString(jwt.getSubject());
+		return workoutService.updateWorkout(
+			userId,
+			workoutId,
+			request.workoutDate(),
+			request.memo(),
+			request.exercises()
+		);
 	}
 
 	@DeleteMapping("/{workoutId}")

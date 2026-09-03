@@ -17,12 +17,20 @@ const categories = [
 
 const setTypes = [
   { label: '웜업', value: 'WARMUP' },
-  { label: '본세트', value: 'WORKING' },
+  { label: '워킹', value: 'WORKING' },
   { label: '탑세트', value: 'TOP' },
   { label: '실패', value: 'FAILURE' },
+  { label: '백오프', value: 'BACKOFF' },
+  { label: '드랍', value: 'DROP' },
 ]
 
-const navItems = ['오늘', '기록', '루틴', '운동']
+const navItems = [
+  { label: '대시보드', page: 'record' },
+  { label: '기록추가', page: 'today' },
+  { label: '통계', page: 'statistics' },
+  { label: '루틴', page: 'routine' },
+  { label: '운동관리', page: 'exercise' },
+]
 
 function categoryLabel(value) {
   return categories.find((category) => category.value === value)?.label ?? value
@@ -557,15 +565,11 @@ function RoutineManagementPage({ headerAction = null, onNavigate = () => {} }) {
         {navItems.map((item) => (
           <button
             type="button"
-            className={item === '루틴' ? 'active' : ''}
-            key={item}
-            onClick={() => {
-              if (item === '오늘') onNavigate('today')
-              if (item === '기록') onNavigate('record')
-              if (item === '운동') onNavigate('exercise')
-            }}
+            className={item.page === 'routine' ? 'active' : ''}
+            key={item.page}
+            onClick={() => onNavigate(item.page)}
           >
-            {item}
+            {item.label}
           </button>
         ))}
       </nav>

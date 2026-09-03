@@ -23,9 +23,11 @@ import com.workoutlog.backend.routine.RoutineNotFoundException;
 import com.workoutlog.backend.routine.RoutineSetDetail;
 import com.workoutlog.backend.routine.RoutineSetType;
 import com.workoutlog.backend.routine.repository.RoutineRepository;
+import com.workoutlog.backend.workout.WorkoutExerciseResponse;
 import com.workoutlog.backend.workout.WorkoutNotFoundException;
 import com.workoutlog.backend.workout.WorkoutOperationException;
 import com.workoutlog.backend.workout.WorkoutResponse;
+import com.workoutlog.backend.workout.WorkoutSetResponse;
 import com.workoutlog.backend.workout.WorkoutSetType;
 import com.workoutlog.backend.workout.WorkoutSummaryResponse;
 import com.workoutlog.backend.workout.dto.WorkoutCreateRequest.WorkoutExerciseRequest;
@@ -56,7 +58,7 @@ class WorkoutServiceTest {
 	private WorkoutService workoutService;
 
 	@Test
-	void createWorkoutSavesUserIdExerciseNameSnapshotAndSets() {
+	void createWorkoutSavesExerciseSnapshotAndSets() {
 		WorkoutExerciseRequest exerciseRequest = new WorkoutExerciseRequest(
 			1,
 			1,
@@ -70,7 +72,7 @@ class WorkoutServiceTest {
 			.thenReturn(Optional.of(systemExercise(1)));
 		when(workoutRepository.saveWorkout(USER_A, WORKOUT_DATE, 2, "오늘 기록"))
 			.thenReturn(10);
-		when(workoutRepository.saveWorkoutExercise(10, 1, "벤치프레스", 1, "벤치 메모", true))
+		when(workoutRepository.saveWorkoutExercise(10, 1, "벤치프레스", ExerciseCategory.CHEST, 1, "벤치 메모", true))
 			.thenReturn(20);
 
 		WorkoutResponse workout = workoutService.createWorkout(
@@ -241,7 +243,7 @@ class WorkoutServiceTest {
 			.thenReturn(Optional.of(systemExercise(1)));
 		when(workoutRepository.saveWorkout(USER_A, WORKOUT_DATE, 3, "오늘 기록"))
 			.thenReturn(10);
-		when(workoutRepository.saveWorkoutExercise(10, 1, "벤치프레스", 1, "벤치 메모", false))
+		when(workoutRepository.saveWorkoutExercise(10, 1, "벤치프레스", ExerciseCategory.CHEST, 1, "벤치 메모", false))
 			.thenReturn(20);
 
 		WorkoutResponse workout = workoutService.createWorkoutFromRoutine(USER_A, 5, WORKOUT_DATE, "오늘 기록");
@@ -326,6 +328,58 @@ class WorkoutServiceTest {
 	}
 
 	@Test
+	void updateWorkoutKeepsExistingExerciseSnapshotAndReplacesSets() {
+		WorkoutResponse current = workoutResponseWithExercise(10, WORKOUT_DATE, 1);
+		WorkoutResponse updated = workoutResponseWithExercise(10, WORKOUT_DATE, 1);
+		when(workoutRepository.findById(USER_A, 10))
+			.thenReturn(Optional.of(current), Optional.of(updated));
+		when(workoutRepository.updateWorkout(USER_A, 10, WORKOUT_DATE, 1, "수정 메모"))
+			.thenReturn(1);
+		when(workoutRepository.updateWorkoutExercise(10, 1, 1, "운동 메모", true))
+			.thenReturn(Optional.of(20));
+
+		WorkoutResponse result = workoutService.updateWorkout(
+			USER_A,
+			10,
+			WORKOUT_DATE,
+			"수정 메모",
+			List.of(new WorkoutExerciseRequest(
+				1,
+				1,
+				"운동 메모",
+				true,
+				List.of(set(1, 9, true), set(2, null, false))
+			))
+		);
+
+		assertEquals(updated, result);
+		verify(workoutRepository).updateWorkout(USER_A, 10, WORKOUT_DATE, 1, "수정 메모");
+		verify(workoutRepository).updateWorkoutExercise(10, 1, 1, "운동 메모", true);
+		verify(workoutRepository).deleteWorkoutSets(20);
+		verify(workoutRepository).saveWorkoutSet(20, 1, BigDecimal.valueOf(80), 10, 9, WorkoutSetType.WORKING, true);
+		verify(workoutRepository).saveWorkoutSet(20, 2, BigDecimal.valueOf(80), 10, null, WorkoutSetType.WORKING, false);
+	}
+
+	@Test
+	void updateWorkoutRejectsExerciseChange() {
+		when(workoutRepository.findById(USER_A, 10))
+			.thenReturn(Optional.of(workoutResponseWithExercise(10, WORKOUT_DATE, 1)));
+
+		assertThrows(
+			WorkoutOperationException.class,
+			() -> workoutService.updateWorkout(
+				USER_A,
+				10,
+				WORKOUT_DATE,
+				null,
+				List.of(exercise(2, 1))
+			)
+		);
+
+		verify(workoutRepository, never()).updateWorkout(USER_A, 10, WORKOUT_DATE, 1, null);
+	}
+
+	@Test
 	void deleteWorkoutDeletesOwnedWorkout() {
 		when(workoutRepository.deleteById(USER_A, 10))
 			.thenReturn(1);
@@ -395,6 +449,31 @@ class WorkoutServiceTest {
 			1,
 			"오늘 기록",
 			List.of()
+		);
+	}
+
+	private WorkoutResponse workoutResponseWithExercise(Integer workoutId, LocalDate workoutDate, Integer workoutOrder) {
+		return new WorkoutResponse(
+			workoutId,
+			workoutDate,
+			workoutOrder,
+			"오늘 기록",
+			List.of(new WorkoutExerciseResponse(
+				1,
+				"벤치프레스",
+				ExerciseCategory.CHEST,
+				1,
+				null,
+				false,
+				List.of(new WorkoutSetResponse(
+					1,
+					BigDecimal.valueOf(80),
+					10,
+					null,
+					WorkoutSetType.WORKING,
+					false
+				))
+			))
 		);
 	}
 

@@ -49,7 +49,7 @@ public class WorkoutRepository {
 				SELECT we.workout_exercise_id,
 				       we.exercise_id,
 				       we.exercise_name,
-				       e.exercise_category,
+				       we.exercise_category,
 				       we.exercise_order,
 				       we.memo AS exercise_memo,
 				       we.completed AS exercise_completed,
@@ -60,7 +60,6 @@ public class WorkoutRepository {
 				       ws.set_type,
 				       ws.completed AS set_completed
 				FROM workout_exercises we
-				JOIN exercises e ON we.exercise_id = e.exercise_id
 				LEFT JOIN workout_sets ws ON we.workout_exercise_id = ws.workout_exercise_id
 				WHERE we.workout_id = :workoutId
 				ORDER BY we.exercise_order, ws.set_order
@@ -178,6 +177,7 @@ public class WorkoutRepository {
 		Integer workoutId,
 		Integer exerciseId,
 		String exerciseName,
+		ExerciseCategory exerciseCategory,
 		Integer exerciseOrder,
 		String memo,
 		boolean completed
@@ -187,6 +187,7 @@ public class WorkoutRepository {
 				    workout_id,
 				    exercise_id,
 				    exercise_name,
+				    exercise_category,
 				    exercise_order,
 				    memo,
 				    completed
@@ -195,6 +196,7 @@ public class WorkoutRepository {
 				    :workoutId,
 				    :exerciseId,
 				    :exerciseName,
+				    :exerciseCategory,
 				    :exerciseOrder,
 				    :memo,
 				    :completed
@@ -204,6 +206,7 @@ public class WorkoutRepository {
 			.param("workoutId", workoutId)
 			.param("exerciseId", exerciseId)
 			.param("exerciseName", exerciseName)
+			.param("exerciseCategory", exerciseCategory.name())
 			.param("exerciseOrder", exerciseOrder)
 			.param("memo", memo)
 			.param("completed", completed)
@@ -247,6 +250,57 @@ public class WorkoutRepository {
 			.param("rpe", rpe)
 			.param("setType", setType.name())
 			.param("completed", completed)
+			.update();
+	}
+
+	public int updateWorkout(UUID userId, Integer workoutId, LocalDate workoutDate, Integer workoutOrder, String memo) {
+		return jdbcClient.sql("""
+				UPDATE workouts
+				SET workout_date = :workoutDate,
+				    workout_order = :workoutOrder,
+				    memo = :memo
+				WHERE workout_id = :workoutId
+				  AND user_id = :userId
+				""")
+			.param("userId", userId)
+			.param("workoutId", workoutId)
+			.param("workoutDate", workoutDate)
+			.param("workoutOrder", workoutOrder)
+			.param("memo", memo)
+			.update();
+	}
+
+	public Optional<Integer> updateWorkoutExercise(
+		Integer workoutId,
+		Integer exerciseId,
+		Integer exerciseOrder,
+		String memo,
+		boolean completed
+	) {
+		return jdbcClient.sql("""
+				UPDATE workout_exercises
+				SET memo = :memo,
+				    completed = :completed
+				WHERE workout_id = :workoutId
+				  AND exercise_id = :exerciseId
+				  AND exercise_order = :exerciseOrder
+				RETURNING workout_exercise_id
+				""")
+			.param("workoutId", workoutId)
+			.param("exerciseId", exerciseId)
+			.param("exerciseOrder", exerciseOrder)
+			.param("memo", memo)
+			.param("completed", completed)
+			.query(Integer.class)
+			.optional();
+	}
+
+	public void deleteWorkoutSets(Integer workoutExerciseId) {
+		jdbcClient.sql("""
+				DELETE FROM workout_sets
+				WHERE workout_exercise_id = :workoutExerciseId
+				""")
+			.param("workoutExerciseId", workoutExerciseId)
 			.update();
 	}
 

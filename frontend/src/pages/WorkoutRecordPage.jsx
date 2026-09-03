@@ -1,8 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
+import workoutFlame from '../assets/workout-flame.png'
 import { apiFetch } from '../lib/apiClient.js'
+import { isDbWeightInput } from '../utils/numberInputs.js'
 
-const navItems = ['오늘', '기록', '루틴', '운동']
+const navItems = [
+  { label: '대시보드', page: 'record' },
+  { label: '기록추가', page: 'today' },
+  { label: '통계', page: 'statistics' },
+  { label: '루틴', page: 'routine' },
+  { label: '운동관리', page: 'exercise' },
+]
 const weekdays = ['일', '월', '화', '수', '목', '금', '토']
 const monthOptions = Array.from({ length: 12 }, (_, index) => index + 1)
 const categories = [
@@ -17,10 +25,13 @@ const categories = [
 ]
 const setTypeLabels = {
   WARMUP: '웜업',
-  WORKING: '본세트',
+  WORKING: '워킹',
   TOP: '탑세트',
   FAILURE: '실패',
+  BACKOFF: '백오프',
+  DROP: '드랍',
 }
+const setTypes = Object.entries(setTypeLabels).map(([value, label]) => ({ value, label }))
 const startYear = 2020
 const endYear = Math.max(new Date().getFullYear() + 5, 2030)
 const yearOptions = Array.from({ length: endYear - startYear + 1 }, (_, index) => startYear + index)
@@ -30,6 +41,12 @@ function formatDate(date) {
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
+}
+
+function formatDisplayDate(dateText) {
+  const [year, month, day] = dateText.split('-').map(Number)
+  const weekday = weekdays[new Date(year, month - 1, day).getDay()]
+  return `${month}월 ${day}일 ${weekday}요일`
 }
 
 function currentMonth() {
@@ -63,6 +80,34 @@ function countedSetNumber(sets, setIndex) {
   return sets.slice(0, setIndex + 1).filter((set) => set.setType !== 'WARMUP').length
 }
 
+function toEditForm(workout) {
+  return {
+    workoutDate: workout.workoutDate,
+    memo: workout.memo ?? '',
+    exercises: workout.exercises
+      .slice()
+      .sort((a, b) => a.exerciseOrder - b.exerciseOrder)
+      .map((exercise) => ({
+        exerciseId: exercise.exerciseId,
+        exerciseName: exercise.exerciseName,
+        exerciseCategory: exercise.exerciseCategory,
+        exerciseOrder: exercise.exerciseOrder,
+        memo: exercise.memo ?? '',
+        completed: Boolean(exercise.completed),
+        sets: exercise.sets
+          .slice()
+          .sort((a, b) => a.setOrder - b.setOrder)
+          .map((set) => ({
+            weight: set.weight,
+            reps: set.reps,
+            rpe: set.rpe,
+            setType: set.setType,
+            completed: Boolean(set.completed),
+          })),
+      })),
+  }
+}
+
 function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
   const initialMonth = useMemo(() => currentMonth(), [])
   const [calendarMonth, setCalendarMonth] = useState(initialMonth)
@@ -75,11 +120,15 @@ function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
   const [isListLoading, setIsListLoading] = useState(false)
   const [isDetailLoading, setIsDetailLoading] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
   const [calendarError, setCalendarError] = useState('')
   const [listError, setListError] = useState('')
   const [detailError, setDetailError] = useState('')
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editForm, setEditForm] = useState(null)
   const deletingRef = useRef(false)
+  const updatingRef = useRef(false)
 
   const calendarDays = useMemo(
     () => buildCalendarDays(calendarMonth.year, calendarMonth.month),
@@ -170,6 +219,8 @@ function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
     setView('detail')
     setDetail(null)
     setDetailError('')
+    setIsEditing(false)
+    setEditForm(null)
     setIsDetailLoading(true)
 
     try {
@@ -180,6 +231,144 @@ function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
       setDetailError('운동 기록 상세를 불러오지 못했습니다.')
     } finally {
       setIsDetailLoading(false)
+    }
+  }
+
+  function startEdit() {
+    if (!detail) return
+    setEditForm(toEditForm(detail))
+    setDetailError('')
+    setIsEditing(true)
+  }
+
+  function cancelEdit() {
+    setEditForm(null)
+    setDetailError('')
+    setIsEditing(false)
+  }
+
+  function updateWorkoutField(field, value) {
+    setEditForm((current) => ({ ...current, [field]: value }))
+  }
+
+  function updateExerciseField(exerciseIndex, field, value) {
+    setEditForm((current) => ({
+      ...current,
+      exercises: current.exercises.map((exercise, index) =>
+        index === exerciseIndex ? { ...exercise, [field]: value } : exercise,
+      ),
+    }))
+  }
+
+  function updateSetField(exerciseIndex, setIndex, field, value) {
+    if (field === 'weight' && !isDbWeightInput(value)) return
+
+    setEditForm((current) => ({
+      ...current,
+      exercises: current.exercises.map((exercise, index) => {
+        if (index !== exerciseIndex) return exercise
+
+        return {
+          ...exercise,
+          sets: exercise.sets.map((set, currentSetIndex) =>
+            currentSetIndex === setIndex ? { ...set, [field]: value } : set,
+          ),
+        }
+      }),
+    }))
+  }
+
+  function addSet(exerciseIndex) {
+    setEditForm((current) => ({
+      ...current,
+      exercises: current.exercises.map((exercise, index) =>
+        index === exerciseIndex
+          ? {
+              ...exercise,
+              sets: [...exercise.sets, { weight: 0, reps: 10, rpe: null, setType: 'WORKING', completed: false }],
+            }
+          : exercise,
+      ),
+    }))
+  }
+
+  function removeSet(exerciseIndex, setIndex) {
+    setEditForm((current) => ({
+      ...current,
+      exercises: current.exercises.map((exercise, index) => {
+        if (index !== exerciseIndex || exercise.sets.length === 1) return exercise
+
+        return {
+          ...exercise,
+          sets: exercise.sets.filter((_, currentSetIndex) => currentSetIndex !== setIndex),
+        }
+      }),
+    }))
+  }
+
+  function buildEditPayload() {
+    return {
+      workoutDate: editForm.workoutDate,
+      memo: editForm.memo.trim(),
+      exercises: editForm.exercises.map((exercise) => ({
+        exerciseId: exercise.exerciseId,
+        exerciseOrder: exercise.exerciseOrder,
+        memo: exercise.memo.trim(),
+        completed: exercise.completed,
+        sets: exercise.sets.map((set, setIndex) => ({
+          setOrder: setIndex + 1,
+          weight: Number(set.weight),
+          reps: Number(set.reps),
+          rpe: set.rpe,
+          setType: set.setType,
+          completed: set.completed,
+        })),
+      })),
+    }
+  }
+
+  async function saveEdit(event) {
+    event.preventDefault()
+    if (!detail || !editForm || updatingRef.current) return
+
+    updatingRef.current = true
+    setIsUpdating(true)
+    setDetailError('')
+
+    try {
+      const response = await apiFetch(`/api/workouts/${detail.workoutId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildEditPayload()),
+      })
+      if (!response.ok) throw new Error()
+
+      const updated = await response.json()
+      const [updatedYear, updatedMonth] = updated.workoutDate.split('-').map(Number)
+      setDetail(updated)
+      setSelectedDate(updated.workoutDate)
+      setCalendarMonth({
+        year: updatedYear,
+        month: updatedMonth,
+      })
+
+      const listResponse = await apiFetch(`/api/workouts?date=${updated.workoutDate}`)
+      if (listResponse.ok) {
+        setWorkouts(await listResponse.json())
+      }
+
+      const calendarResponse = await apiFetch(`/api/workouts/calendar?year=${updatedYear}&month=${updatedMonth}`)
+      if (calendarResponse.ok) {
+        setRecordDates(await calendarResponse.json())
+      }
+
+      setEditForm(null)
+      setIsEditing(false)
+    } catch {
+      setDetailError('운동 기록을 수정하지 못했습니다.')
+    } finally {
+      updatingRef.current = false
+      setIsUpdating(false)
     }
   }
 
@@ -218,7 +407,7 @@ function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
         <header className="page-header">
           <div>
             <p className="eyebrow">RECORDS</p>
-            <h1>{detail?.workoutDate ?? selectedDate}</h1>
+            <h1>{formatDisplayDate(detail?.workoutDate ?? selectedDate)}</h1>
           </div>
           <div className="page-header-actions">
             <button type="button" className="ghost-button" onClick={() => setView('calendar')}>
@@ -230,22 +419,30 @@ function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
 
         {isDetailLoading && <p className="empty-message">상세 기록을 불러오는 중입니다.</p>}
         {detailError && <p className="error-message">{detailError}</p>}
-        {detail && (
+        {detail && !isEditing && (
           <section className="routine-builder" aria-label="운동 기록 상세">
-            <section className="routine-section">
-              <div className="record-detail-summary">
-                <strong>운동 {detail.exercises.length}개</strong>
-                <span>총 {totalSets}세트</span>
+            <section className="routine-section record-detail-header-card">
+              <div>
+                <p>운동 기록 {detail.workoutOrder}</p>
+                <div className="record-detail-summary">
+                  <strong>운동 {detail.exercises.length}개</strong>
+                  <span>총 {totalSets}세트</span>
+                </div>
               </div>
               {detail.memo && <p className="record-memo">{detail.memo}</p>}
-              <button
-                type="button"
-                className="danger-outline-button record-delete-button"
-                disabled={isDeleting}
-                onClick={deleteWorkout}
-              >
-                {isDeleting ? '삭제 중' : '운동 기록 삭제'}
-              </button>
+              <div className="record-edit-actions">
+                <button type="button" className="ghost-button" onClick={startEdit}>
+                  운동 기록 수정
+                </button>
+                <button
+                  type="button"
+                  className="danger-outline-button record-delete-button"
+                  disabled={isDeleting}
+                  onClick={deleteWorkout}
+                >
+                  {isDeleting ? '삭제 중' : '운동 기록 삭제'}
+                </button>
+              </div>
             </section>
 
             {detail.exercises
@@ -262,33 +459,27 @@ function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
                   </div>
                   {exercise.memo && <p className="record-memo">{exercise.memo}</p>}
                   <div className="record-set-list" aria-label={`${exercise.exerciseName} 세트`}>
+                    <div className="record-set-header" aria-hidden="true">
+                      <span>세트</span>
+                      <span>유형</span>
+                      <span>중량</span>
+                      <span>횟수</span>
+                      <span>완료</span>
+                    </div>
                     {exercise.sets
                       .slice()
                       .sort((a, b) => a.setOrder - b.setOrder)
                       .map((set, setIndex, sets) => (
-                        <div className="record-set-grid" key={set.setOrder}>
-                          <div>
-                            <span>유형</span>
-                            <strong className={`set-type-${set.setType.toLowerCase()}`}>
-                              {setTypeLabels[set.setType] ?? set.setType}
-                            </strong>
-                          </div>
-                          <div>
-                            <span>세트</span>
-                            <strong>{countedSetNumber(sets, setIndex)}</strong>
-                          </div>
-                          <div>
-                            <span>중량</span>
-                            <strong>{set.weight}</strong>
-                          </div>
-                          <div>
-                            <span>횟수</span>
-                            <strong>{set.reps}</strong>
-                          </div>
-                          <div>
-                            <span>완료</span>
-                            <strong>{set.completed ? '완료' : '-'}</strong>
-                          </div>
+                        <div className="record-set-row" key={set.setOrder}>
+                          <span className="record-set-number">{countedSetNumber(sets, setIndex)}</span>
+                          <strong className={`record-set-type set-type-${set.setType.toLowerCase()}`}>
+                            {setTypeLabels[set.setType] ?? set.setType}
+                          </strong>
+                          <span className="record-set-weight">{set.weight}kg</span>
+                          <span className="record-set-reps">{set.reps}</span>
+                          <span className={set.completed ? 'record-set-status complete' : 'record-set-status'}>
+                            {set.completed ? '완료' : '-'}
+                          </span>
                         </div>
                       ))}
                   </div>
@@ -297,19 +488,137 @@ function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
           </section>
         )}
 
+        {detail && isEditing && editForm && (
+          <form className="routine-builder" aria-label="운동 기록 수정" onSubmit={saveEdit}>
+            <section className="routine-section record-detail-header-card">
+              <label>
+                운동 날짜
+                <input
+                  type="date"
+                  value={editForm.workoutDate}
+                  onChange={(event) => updateWorkoutField('workoutDate', event.target.value)}
+                />
+              </label>
+              <label>
+                전체 메모
+                <textarea
+                  value={editForm.memo}
+                  placeholder="운동 기록 메모"
+                  onChange={(event) => updateWorkoutField('memo', event.target.value)}
+                />
+              </label>
+              <div className="record-detail-summary">
+                <strong>운동 {editForm.exercises.length}개</strong>
+                <span>운동 기록 {detail.workoutOrder}</span>
+              </div>
+              <div className="record-edit-actions">
+                <button type="button" className="ghost-button" disabled={isUpdating} onClick={cancelEdit}>
+                  취소
+                </button>
+                <button type="submit" className="primary-action" disabled={isUpdating}>
+                  {isUpdating ? '저장 중' : '변경사항 저장'}
+                </button>
+              </div>
+            </section>
+
+            {editForm.exercises.map((exercise, exerciseIndex) => (
+              <article className="routine-exercise-card record-exercise-detail" key={exercise.exerciseOrder}>
+                <div className="routine-exercise-top">
+                  <div>
+                    <span>{exercise.exerciseOrder}</span>
+                    <h3>{exercise.exerciseName}</h3>
+                    <p>{categoryLabel(exercise.exerciseCategory)}</p>
+                  </div>
+                </div>
+                <label className="exercise-memo" aria-label={`${exercise.exerciseName} 메모`}>
+                  <textarea
+                    value={exercise.memo}
+                    placeholder="운동 메모"
+                    onChange={(event) => updateExerciseField(exerciseIndex, 'memo', event.target.value)}
+                  />
+                </label>
+                <div className="routine-sets">
+                  {exercise.sets.map((set, setIndex) => (
+                    <article className="routine-set-card" data-set-type={set.setType} key={setIndex}>
+                      <div className="workout-set-grid">
+                        <label>
+                          유형
+                          <select
+                            value={set.setType}
+                            onChange={(event) => updateSetField(exerciseIndex, setIndex, 'setType', event.target.value)}
+                          >
+                            {setTypes.map((setType) => (
+                              <option value={setType.value} key={setType.value}>
+                                {setType.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <div className="workout-set-number">
+                          <span>세트</span>
+                          <strong>{countedSetNumber(exercise.sets, setIndex)}</strong>
+                        </div>
+                        <label>
+                          중량
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={set.weight}
+                            onChange={(event) => updateSetField(exerciseIndex, setIndex, 'weight', event.target.value)}
+                          />
+                        </label>
+                        <label>
+                          횟수
+                          <input
+                            type="number"
+                            min="0"
+                            value={set.reps}
+                            onChange={(event) => updateSetField(exerciseIndex, setIndex, 'reps', event.target.value)}
+                          />
+                        </label>
+                        <label className="workout-set-complete">
+                          <span>완료</span>
+                          <input
+                            type="checkbox"
+                            checked={set.completed}
+                            onChange={(event) => updateSetField(exerciseIndex, setIndex, 'completed', event.target.checked)}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          className="set-remove-button workout-set-delete"
+                          aria-label={`${setIndex + 1}세트 삭제`}
+                          disabled={exercise.sets.length === 1}
+                          onClick={() => removeSet(exerciseIndex, setIndex)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                  <button type="button" className="set-add-button" onClick={() => addSet(exerciseIndex)}>
+                    세트 추가
+                  </button>
+                </div>
+              </article>
+            ))}
+
+            <button type="submit" className="primary-action routine-save-button" disabled={isUpdating}>
+              {isUpdating ? '저장 중' : '변경사항 저장'}
+            </button>
+          </form>
+        )}
+
         <nav className="bottom-nav" aria-label="하단 메뉴">
           {navItems.map((item) => (
             <button
               type="button"
-              className={item === '기록' ? 'active' : ''}
-              key={item}
-              onClick={() => {
-                if (item === '오늘') onNavigate('today')
-                if (item === '루틴') onNavigate('routine')
-                if (item === '운동') onNavigate('exercise')
-              }}
+              className={item.page === 'record' ? 'active' : ''}
+              key={item.page}
+              onClick={() => onNavigate(item.page)}
             >
-              {item}
+              {item.label}
             </button>
           ))}
         </nav>
@@ -411,7 +720,7 @@ function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
                 >
                   <span>{day}</span>
                   {recordDateSet.has(formatDate(new Date(calendarMonth.year, calendarMonth.month - 1, day))) && (
-                    <i aria-label="운동 기록 있음" />
+                    <img src={workoutFlame} alt="운동 기록 있음" />
                   )}
                 </button>
               ) : (
@@ -423,12 +732,12 @@ function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
 
         <section className="routine-section" aria-label="날짜별 운동 기록">
           <div className="section-header">
-            <h2>{selectedDate}</h2>
+            <h2>{formatDisplayDate(selectedDate)}</h2>
           </div>
           {listError && <p className="error-message">{listError}</p>}
           {isListLoading && <p className="empty-message">운동 기록을 불러오는 중입니다.</p>}
           {!isListLoading && !listError && workouts.length === 0 && (
-            <p className="empty-message">운동 기록이 없습니다.</p>
+            <p className="empty-message">이 날짜에는 운동 기록이 없습니다.</p>
           )}
           <div className="exercise-list">
             {workouts.map((workout) => (
@@ -438,14 +747,14 @@ function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
                 key={workout.workoutId}
                 onClick={() => openDetail(workout.workoutId)}
               >
-                <div>
+                <div className="workout-record-card-body">
                   <h2>운동 기록 {workout.workoutOrder}</h2>
                   <p>
-                    운동 {workout.exerciseCount}개 · {workout.setCount}세트
+                    {workout.exerciseCount}개 운동 · {workout.setCount}세트
                   </p>
                   {workout.memo && <p className="routine-exercise-names">{workout.memo}</p>}
                 </div>
-                <span>상세 &gt;</span>
+                <span aria-hidden="true">›</span>
               </button>
             ))}
           </div>
@@ -456,15 +765,11 @@ function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
         {navItems.map((item) => (
           <button
             type="button"
-            className={item === '기록' ? 'active' : ''}
-            key={item}
-            onClick={() => {
-              if (item === '오늘') onNavigate('today')
-              if (item === '루틴') onNavigate('routine')
-              if (item === '운동') onNavigate('exercise')
-            }}
+            className={item.page === 'record' ? 'active' : ''}
+            key={item.page}
+            onClick={() => onNavigate(item.page)}
           >
-            {item}
+            {item.label}
           </button>
         ))}
       </nav>

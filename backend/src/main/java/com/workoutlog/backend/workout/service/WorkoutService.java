@@ -61,6 +61,7 @@ public class WorkoutService {
 				workoutId,
 				exercise.exercise().id(),
 				exercise.exercise().name(),
+				exercise.exercise().category(),
 				exercise.exerciseOrder(),
 				exercise.memo(),
 				exercise.completed()
@@ -110,6 +111,7 @@ public class WorkoutService {
 				workoutId,
 				routineExercise.exerciseId(),
 				routineExercise.exerciseName(),
+				routineExercise.exerciseCategory(),
 				routineExercise.exerciseOrder(),
 				routineExercise.memo(),
 				false
@@ -161,6 +163,52 @@ public class WorkoutService {
 	public WorkoutResponse findWorkout(UUID userId, Integer workoutId) {
 		return workoutRepository.findById(userId, workoutId)
 			.orElseThrow(() -> new WorkoutNotFoundException(workoutId));
+	}
+
+	@Transactional
+	public WorkoutResponse updateWorkout(
+		UUID userId,
+		Integer workoutId,
+		LocalDate workoutDate,
+		String memo,
+		List<WorkoutExerciseRequest> workoutExercises
+	) {
+		WorkoutResponse current = findWorkout(userId, workoutId);
+		validateExistingWorkoutExercises(current, workoutExercises);
+
+		Integer workoutOrder = current.workoutDate().equals(workoutDate)
+			? current.workoutOrder()
+			: workoutRepository.findNextWorkoutOrder(userId, workoutDate);
+		int updatedCount = workoutRepository.updateWorkout(userId, workoutId, workoutDate, workoutOrder, memo);
+		if (updatedCount == 0) {
+			throw new WorkoutNotFoundException(workoutId);
+		}
+
+		for (WorkoutExerciseRequest exercise : workoutExercises) {
+			Integer workoutExerciseId = workoutRepository.updateWorkoutExercise(
+					workoutId,
+					exercise.exerciseId(),
+					exercise.exerciseOrder(),
+					exercise.memo(),
+					Boolean.TRUE.equals(exercise.completed())
+				)
+				.orElseThrow(() -> new WorkoutOperationException("Workout exercise cannot be added or changed."));
+			workoutRepository.deleteWorkoutSets(workoutExerciseId);
+
+			for (WorkoutSetRequest set : exercise.sets()) {
+				workoutRepository.saveWorkoutSet(
+					workoutExerciseId,
+					set.setOrder(),
+					set.weight(),
+					set.reps(),
+					set.rpe(),
+					set.setType(),
+					Boolean.TRUE.equals(set.completed())
+				);
+			}
+		}
+
+		return findWorkout(userId, workoutId);
 	}
 
 	@Transactional(readOnly = true)
@@ -234,6 +282,33 @@ public class WorkoutService {
 		for (WorkoutSetRequest set : sets) {
 			if (!setOrders.add(set.setOrder())) {
 				throw new WorkoutOperationException("Set order cannot be duplicated in an exercise.");
+			}
+		}
+	}
+
+	private void validateExistingWorkoutExercises(
+		WorkoutResponse current,
+		List<WorkoutExerciseRequest> workoutExercises
+	) {
+		if (current.exercises().size() != workoutExercises.size()) {
+			throw new WorkoutOperationException("Workout exercises cannot be added or removed.");
+		}
+
+		Set<Integer> exerciseOrders = new HashSet<>();
+		for (WorkoutExerciseRequest exercise : workoutExercises) {
+			if (!exerciseOrders.add(exercise.exerciseOrder())) {
+				throw new WorkoutOperationException("Exercise order cannot be duplicated in a workout.");
+			}
+			validateSetOrders(exercise.sets());
+
+			boolean exists = current.exercises()
+				.stream()
+				.anyMatch(currentExercise ->
+					currentExercise.exerciseOrder().equals(exercise.exerciseOrder())
+						&& currentExercise.exerciseId().equals(exercise.exerciseId())
+				);
+			if (!exists) {
+				throw new WorkoutOperationException("Workout exercise cannot be added or changed.");
 			}
 		}
 	}
