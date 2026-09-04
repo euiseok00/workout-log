@@ -39,9 +39,10 @@ public class ExerciseController {
 	@GetMapping
 	public List<ExerciseResponse> findExercises(
 		@AuthenticationPrincipal Jwt jwt,
-		@RequestParam(required = false) ExerciseCategory category
+		@RequestParam(required = false) ExerciseCategory category,
+		@RequestParam(defaultValue = "ACTIVE") ExerciseStatus status
 	) {
-		return exerciseService.findActiveExercises(userId(jwt), category)
+		return exerciseService.findExercises(userId(jwt), category, status.active())
 			.stream()
 			.map(ExerciseResponse::from)
 			.toList();
@@ -82,7 +83,30 @@ public class ExerciseController {
 		return ResponseEntity.noContent().build();
 	}
 
+	@PatchMapping("/{exerciseId}/active")
+	public ResponseEntity<Void> activateExercise(
+		@AuthenticationPrincipal Jwt jwt,
+		@PathVariable @Positive Integer exerciseId
+	) {
+		exerciseService.activateCustomExercise(userId(jwt), exerciseId);
+		return ResponseEntity.noContent().build();
+	}
+
 	private UUID userId(Jwt jwt) {
 		return UUID.fromString(jwt.getSubject());
+	}
+
+	private enum ExerciseStatus {
+		ACTIVE,
+		INACTIVE,
+		ALL;
+
+		private Boolean active() {
+			return switch (this) {
+				case ACTIVE -> true;
+				case INACTIVE -> false;
+				case ALL -> null;
+			};
+		}
 	}
 }

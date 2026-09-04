@@ -19,19 +19,20 @@ public class ExerciseRepository {
 		this.jdbcClient = jdbcClient;
 	}
 
-	public List<Exercise> findActive(UUID userId, ExerciseCategory category) {
+	public List<Exercise> findByFilters(UUID userId, ExerciseCategory category, Boolean active) {
 		if (category == null) {
 			return jdbcClient.sql("""
 					SELECT exercise_id, exercise_name, exercise_type, exercise_category, is_active
 					FROM exercises
-					WHERE is_active = TRUE
+					WHERE (:active IS NULL OR is_active = :active)
 					  AND (
 					      exercise_type = 'SYSTEM'
 					      OR (exercise_type = 'CUSTOM' AND user_id = :userId)
 					  )
-					ORDER BY exercise_category, exercise_name, exercise_id
+					ORDER BY is_active DESC, exercise_category, exercise_name, exercise_id
 					""")
 				.param("userId", userId)
+				.param("active", active)
 				.query(this::mapExercise)
 				.list();
 		}
@@ -39,15 +40,16 @@ public class ExerciseRepository {
 		return jdbcClient.sql("""
 				SELECT exercise_id, exercise_name, exercise_type, exercise_category, is_active
 				FROM exercises
-				WHERE is_active = TRUE
+				WHERE (:active IS NULL OR is_active = :active)
 				  AND (
 				      exercise_type = 'SYSTEM'
 				      OR (exercise_type = 'CUSTOM' AND user_id = :userId)
 				  )
 				  AND exercise_category = :category
-				ORDER BY exercise_name, exercise_id
+				ORDER BY is_active DESC, exercise_name, exercise_id
 				""")
 			.param("userId", userId)
+			.param("active", active)
 			.param("category", category.name())
 			.query(this::mapExercise)
 			.list();
@@ -132,10 +134,10 @@ public class ExerciseRepository {
 			.single();
 	}
 
-	public void deactivate(UUID userId, Integer exerciseId) {
+	public void setActive(UUID userId, Integer exerciseId, boolean active) {
 		jdbcClient.sql("""
 				UPDATE exercises
-				SET is_active = FALSE
+				SET is_active = :active
 				WHERE exercise_id = :exerciseId
 				  AND exercise_type = :type
 				  AND user_id = :userId
@@ -143,6 +145,7 @@ public class ExerciseRepository {
 			.param("userId", userId)
 			.param("exerciseId", exerciseId)
 			.param("type", ExerciseType.CUSTOM.name())
+			.param("active", active)
 			.update();
 	}
 

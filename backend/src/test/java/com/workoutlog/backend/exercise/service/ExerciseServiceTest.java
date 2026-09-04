@@ -39,14 +39,14 @@ class ExerciseServiceTest {
 			new Exercise(1, "Squat", ExerciseType.SYSTEM, ExerciseCategory.LEGS, true),
 			new Exercise(2, "My Row", ExerciseType.CUSTOM, ExerciseCategory.BACK, true)
 		);
-		when(exerciseRepository.findActive(USER_A, null))
+		when(exerciseRepository.findByFilters(USER_A, null, true))
 			.thenReturn(expected);
 
-		List<Exercise> actual = exerciseService.findActiveExercises(USER_A, null);
+		List<Exercise> actual = exerciseService.findExercises(USER_A, null, true);
 
 		assertEquals(expected, actual);
-		verify(exerciseRepository).findActive(USER_A, null);
-		verify(exerciseRepository, never()).findActive(USER_B, null);
+		verify(exerciseRepository).findByFilters(USER_A, null, true);
+		verify(exerciseRepository, never()).findByFilters(USER_B, null, true);
 	}
 
 	@Test
@@ -148,7 +148,7 @@ class ExerciseServiceTest {
 
 		exerciseService.deactivateCustomExercise(USER_A, 1);
 
-		verify(exerciseRepository, never()).deactivate(USER_A, 1);
+		verify(exerciseRepository, never()).setActive(USER_A, 1, false);
 	}
 
 	@Test
@@ -164,7 +164,7 @@ class ExerciseServiceTest {
 
 		exerciseService.deactivateCustomExercise(USER_A, 1);
 
-		verify(exerciseRepository).deactivate(USER_A, 1);
+		verify(exerciseRepository).setActive(USER_A, 1, false);
 	}
 
 	@Test
@@ -177,7 +177,7 @@ class ExerciseServiceTest {
 			() -> exerciseService.deactivateCustomExercise(USER_A, 2)
 		);
 
-		verify(exerciseRepository, never()).deactivate(USER_A, 2);
+		verify(exerciseRepository, never()).setActive(USER_A, 2, false);
 	}
 
 	@Test
@@ -190,6 +190,51 @@ class ExerciseServiceTest {
 			() -> exerciseService.deactivateCustomExercise(USER_A, 1)
 		);
 
-		verify(exerciseRepository, never()).deactivate(USER_A, 1);
+		verify(exerciseRepository, never()).setActive(USER_A, 1, false);
+	}
+
+	@Test
+	void activateCustomExerciseDoesNothingWhenAlreadyActive() {
+		when(exerciseRepository.findCustomById(USER_A, 1))
+			.thenReturn(Optional.of(new Exercise(
+				1,
+				"Bench Press",
+				ExerciseType.CUSTOM,
+				ExerciseCategory.CHEST,
+				true
+			)));
+
+		exerciseService.activateCustomExercise(USER_A, 1);
+
+		verify(exerciseRepository, never()).setActive(USER_A, 1, true);
+	}
+
+	@Test
+	void activateCustomExerciseActivatesOwnedCustomExercise() {
+		when(exerciseRepository.findCustomById(USER_A, 1))
+			.thenReturn(Optional.of(new Exercise(
+				1,
+				"Bench Press",
+				ExerciseType.CUSTOM,
+				ExerciseCategory.CHEST,
+				false
+			)));
+
+		exerciseService.activateCustomExercise(USER_A, 1);
+
+		verify(exerciseRepository).setActive(USER_A, 1, true);
+	}
+
+	@Test
+	void activateCustomExerciseRejectsOtherUserCustomExercise() {
+		when(exerciseRepository.findCustomById(USER_A, 2))
+			.thenReturn(Optional.empty());
+
+		assertThrows(
+			ExerciseNotFoundException.class,
+			() -> exerciseService.activateCustomExercise(USER_A, 2)
+		);
+
+		verify(exerciseRepository, never()).setActive(USER_A, 2, true);
 	}
 }

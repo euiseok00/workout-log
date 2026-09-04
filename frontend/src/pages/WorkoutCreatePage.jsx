@@ -98,11 +98,13 @@ function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
   const [isRoutineLoading, setIsRoutineLoading] = useState(false)
   const [isExerciseLoading, setIsExerciseLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [pendingNavigation, setPendingNavigation] = useState(null)
   const [toastMessage, setToastMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const savingRef = useRef(false)
   const loadingRoutineRef = useRef(false)
   const toastTimerRef = useRef(null)
+  const savedDraftRef = useRef(initialDraft ? JSON.stringify(initialDraft) : '')
 
   const loadRoutines = useCallback(async () => {
     setIsRoutineLoading(true)
@@ -135,15 +137,47 @@ function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
     }
   }, [selectedCategory])
 
-  useEffect(() => {
+  function currentDraftValue() {
     const hasDraft = memo.trim() || selectedExercises.length > 0 || workoutDate !== today()
-    if (!hasDraft) {
+    return hasDraft ? JSON.stringify({ workoutDate, memo, selectedExercises }) : ''
+  }
+
+  function saveDraft() {
+    const draftValue = currentDraftValue()
+    if (!draftValue) {
       localStorage.removeItem(draftStorageKey)
+      savedDraftRef.current = ''
       return
     }
 
-    localStorage.setItem(draftStorageKey, JSON.stringify({ workoutDate, memo, selectedExercises }))
-  }, [memo, selectedExercises, workoutDate])
+    localStorage.setItem(draftStorageKey, draftValue)
+    savedDraftRef.current = draftValue
+  }
+
+  function requestNavigate(page) {
+    if (page === 'today') return
+    if (currentDraftValue() === savedDraftRef.current) {
+      onNavigate(page)
+      return
+    }
+
+    setPendingNavigation(page)
+  }
+
+  function closeDraftPrompt() {
+    setPendingNavigation(null)
+  }
+
+  function navigateWithoutDraft() {
+    onNavigate(pendingNavigation)
+    setPendingNavigation(null)
+  }
+
+  function saveDraftAndNavigate() {
+    saveDraft()
+    onNavigate(pendingNavigation)
+    setPendingNavigation(null)
+  }
 
   useEffect(() => {
     return () => {
@@ -334,6 +368,7 @@ function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
       setMemo('')
       setSelectedExercises([])
       localStorage.removeItem(draftStorageKey)
+      savedDraftRef.current = ''
       setToastMessage('운동 기록이 저장되었습니다.')
       if (toastTimerRef.current) {
         clearTimeout(toastTimerRef.current)
@@ -512,12 +547,38 @@ function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
             type="button"
             className={item.page === 'today' ? 'active' : ''}
             key={item.page}
-            onClick={() => onNavigate(item.page)}
+            onClick={() => requestNavigate(item.page)}
           >
             {item.label}
           </button>
         ))}
       </nav>
+
+      {pendingNavigation && (
+        <div className="sheet-backdrop" role="presentation" onClick={closeDraftPrompt}>
+          <section
+            className="confirm-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="draft-save-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id="draft-save-title">작성 중인 운동 기록을 임시저장할까요?</h2>
+            <p>임시저장하면 다음에 기록 추가 화면에서 이어서 작성할 수 있습니다.</p>
+            <div className="confirm-actions draft-confirm-actions">
+              <button type="button" onClick={closeDraftPrompt}>
+                취소
+              </button>
+              <button type="button" onClick={navigateWithoutDraft}>
+                아니오
+              </button>
+              <button type="button" className="primary-fill" onClick={saveDraftAndNavigate}>
+                예
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
 
       {isRoutineSheetOpen && (
         <div className="sheet-backdrop" role="presentation" onClick={() => setIsRoutineSheetOpen(false)}>

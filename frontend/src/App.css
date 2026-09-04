@@ -510,6 +510,11 @@ button:disabled,
   font-weight: 700;
 }
 
+.workout-set-delete {
+  align-self: end;
+  margin-bottom: 2px;
+}
+
 .order-actions button:last-child,
 .workout-set-delete {
   color: var(--color-danger);
@@ -1282,6 +1287,15 @@ button:disabled,
   gap: 8px;
 }
 
+.draft-confirm-actions {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.confirm-actions .primary-fill {
+  background: var(--color-primary);
+  color: white;
+}
+
 .confirm-actions .danger-fill {
   background: var(--color-danger);
   color: white;
@@ -1486,6 +1500,32 @@ button:disabled,
 
   .exercise-actions {
     flex-direction: column;
+  }
+}
+
+@media (max-width: 430px) {
+  .routine-exercise-card {
+    padding: 10px;
+  }
+
+  .routine-set-card {
+    padding: 6px;
+    overflow-x: visible;
+  }
+
+  .workout-set-grid {
+    grid-template-columns: minmax(68px, 1.35fr) minmax(34px, 0.6fr) minmax(50px, 1fr) minmax(46px, 0.9fr) 34px 34px;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .routine-set-grid {
+    grid-template-columns: minmax(68px, 1.35fr) minmax(34px, 0.6fr) minmax(50px, 1fr) minmax(46px, 0.9fr) 34px;
+  }
+
+  .workout-set-grid input,
+  .workout-set-grid select {
+    padding-inline: 4px;
   }
 }
 

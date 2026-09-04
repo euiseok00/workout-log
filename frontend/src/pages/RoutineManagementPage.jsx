@@ -31,6 +31,7 @@ const navItems = [
   { label: '루틴', page: 'routine' },
   { label: '운동관리', page: 'exercise' },
 ]
+const draftStorageKey = 'workout-log:routine-draft'
 
 function categoryLabel(value) {
   return categories.find((category) => category.value === value)?.label ?? value
@@ -60,27 +61,39 @@ function toFormExercises(exercises) {
     }))
 }
 
+function readDraft() {
+  try {
+    const draft = JSON.parse(localStorage.getItem(draftStorageKey))
+    return Array.isArray(draft?.selectedExercises) ? draft : null
+  } catch {
+    return null
+  }
+}
+
 function RoutineManagementPage({ headerAction = null, onNavigate = () => {} }) {
+  const initialDraft = useMemo(() => readDraft(), [])
   const [routines, setRoutines] = useState([])
   const [availableExercises, setAvailableExercises] = useState([])
   const [mode, setMode] = useState('list')
   const [editingRoutineId, setEditingRoutineId] = useState(null)
   const [isExerciseSheetOpen, setIsExerciseSheetOpen] = useState(false)
-  const [routineName, setRoutineName] = useState('')
-  const [routineMemo, setRoutineMemo] = useState('')
+  const [routineName, setRoutineName] = useState(initialDraft?.routineName ?? '')
+  const [routineMemo, setRoutineMemo] = useState(initialDraft?.routineMemo ?? '')
   const [exerciseSearchText, setExerciseSearchText] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
-  const [selectedExercises, setSelectedExercises] = useState([])
+  const [selectedExercises, setSelectedExercises] = useState(initialDraft?.selectedExercises ?? [])
   const [isRoutineLoading, setIsRoutineLoading] = useState(false)
   const [isExerciseLoading, setIsExerciseLoading] = useState(false)
   const [isDetailLoading, setIsDetailLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [pendingNavigation, setPendingNavigation] = useState(null)
   const [listErrorMessage, setListErrorMessage] = useState('')
   const [detailErrorMessage, setDetailErrorMessage] = useState('')
   const [formMessage, setFormMessage] = useState('')
   const savingRef = useRef(false)
   const deletingRef = useRef(false)
+  const savedDraftRef = useRef(initialDraft ? JSON.stringify(initialDraft) : '')
 
   const loadRoutines = useCallback(async () => {
     setIsRoutineLoading(true)
@@ -226,14 +239,80 @@ function RoutineManagementPage({ headerAction = null, onNavigate = () => {} }) {
     setFormMessage('')
   }
 
+  function restoreDraft() {
+    const draft = readDraft()
+    setRoutineName(draft?.routineName ?? '')
+    setRoutineMemo(draft?.routineMemo ?? '')
+    setSelectedExercises(draft?.selectedExercises ?? [])
+    savedDraftRef.current = draft ? JSON.stringify(draft) : ''
+  }
+
+  function currentDraftValue() {
+    const hasDraft = routineName.trim() || routineMemo.trim() || selectedExercises.length > 0
+    return hasDraft ? JSON.stringify({ routineName, routineMemo, selectedExercises }) : ''
+  }
+
+  function saveDraft() {
+    const draftValue = currentDraftValue()
+    if (!draftValue) {
+      localStorage.removeItem(draftStorageKey)
+      savedDraftRef.current = ''
+      return
+    }
+
+    localStorage.setItem(draftStorageKey, draftValue)
+    savedDraftRef.current = draftValue
+  }
+
   function openCreateMode() {
-    resetForm()
+    restoreDraft()
+    setEditingRoutineId(null)
+    setDetailErrorMessage('')
+    setFormMessage('')
     setMode('create')
   }
 
   function backToList() {
+    if (mode === 'create' && currentDraftValue() !== savedDraftRef.current) {
+      setPendingNavigation('list')
+      return
+    }
+
     resetForm()
     setMode('list')
+  }
+
+  function requestNavigate(page) {
+    if (page === 'routine') return
+    if (mode !== 'create' || currentDraftValue() === savedDraftRef.current) {
+      onNavigate(page)
+      return
+    }
+
+    setPendingNavigation(page)
+  }
+
+  function closeDraftPrompt() {
+    setPendingNavigation(null)
+  }
+
+  function finishPendingNavigation() {
+    if (pendingNavigation === 'list') {
+      resetForm()
+      setMode('list')
+    } else {
+      onNavigate(pendingNavigation)
+    }
+    setPendingNavigation(null)
+  }
+
+  function navigateWithoutDraft() {
+    finishPendingNavigation()
+  }
+
+  function saveDraftAndNavigate() {
+    saveDraft()
+    finishPendingNavigation()
   }
 
   async function openEditMode(routineId) {
@@ -306,6 +385,10 @@ function RoutineManagementPage({ headerAction = null, onNavigate = () => {} }) {
 
       if (!response.ok) throw new Error()
 
+      if (!isEditMode) {
+        localStorage.removeItem(draftStorageKey)
+        savedDraftRef.current = ''
+      }
       resetForm()
       setMode('list')
       setFormMessage(isEditMode ? '루틴을 수정했습니다.' : '루틴을 저장했습니다.')
@@ -567,12 +650,38 @@ function RoutineManagementPage({ headerAction = null, onNavigate = () => {} }) {
             type="button"
             className={item.page === 'routine' ? 'active' : ''}
             key={item.page}
-            onClick={() => onNavigate(item.page)}
+            onClick={() => requestNavigate(item.page)}
           >
             {item.label}
           </button>
         ))}
       </nav>
+
+      {pendingNavigation && (
+        <div className="sheet-backdrop" role="presentation" onClick={closeDraftPrompt}>
+          <section
+            className="confirm-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="routine-draft-save-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id="routine-draft-save-title">작성 중인 루틴을 임시저장할까요?</h2>
+            <p>임시저장하면 다음에 루틴 생성 화면에서 이어서 작성할 수 있습니다.</p>
+            <div className="confirm-actions draft-confirm-actions">
+              <button type="button" onClick={closeDraftPrompt}>
+                취소
+              </button>
+              <button type="button" onClick={navigateWithoutDraft}>
+                아니오
+              </button>
+              <button type="button" className="primary-fill" onClick={saveDraftAndNavigate}>
+                예
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
 
       {isExerciseSheetOpen && (
         <div className="sheet-backdrop" role="presentation" onClick={() => setIsExerciseSheetOpen(false)}>

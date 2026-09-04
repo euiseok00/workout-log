@@ -20,8 +20,8 @@ public class ExerciseService {
 	}
 
 	@Transactional(readOnly = true)
-	public List<Exercise> findActiveExercises(UUID userId, ExerciseCategory category) {
-		return exerciseRepository.findActive(userId, category);
+	public List<Exercise> findExercises(UUID userId, ExerciseCategory category, Boolean active) {
+		return exerciseRepository.findByFilters(userId, category, active);
 	}
 
 	@Transactional
@@ -42,7 +42,16 @@ public class ExerciseService {
 		Exercise exercise = getCustomExercise(userId, exerciseId);
 
 		if (exercise.active()) {
-			exerciseRepository.deactivate(userId, exerciseId);
+			exerciseRepository.setActive(userId, exerciseId, false);
+		}
+	}
+
+	@Transactional
+	public void activateCustomExercise(UUID userId, Integer exerciseId) {
+		Exercise exercise = getCustomExercise(userId, exerciseId);
+
+		if (!exercise.active()) {
+			exerciseRepository.setActive(userId, exerciseId, true);
 		}
 	}
 

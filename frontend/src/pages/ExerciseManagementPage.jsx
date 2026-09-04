@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { apiFetch } from '../lib/apiClient.js'
 
@@ -22,10 +22,17 @@ const navItems = [
   { label: '운동관리', page: 'exercise' },
 ]
 
+const statusFilters = [
+  { label: '활성', value: 'ACTIVE' },
+  { label: '비활성', value: 'INACTIVE' },
+  { label: '전체', value: 'ALL' },
+]
+
 function ExerciseManagementPage({ headerAction = null, onNavigate = () => {} }) {
   const [exercises, setExercises] = useState([])
   const [searchText, setSearchText] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
+  const [statusFilter, setStatusFilter] = useState('ACTIVE')
   const [editingExercise, setEditingExercise] = useState(undefined)
   const [exerciseToDisable, setExerciseToDisable] = useState(null)
   const [form, setForm] = useState({ name: '', category: 'CHEST' })
@@ -33,8 +40,18 @@ function ExerciseManagementPage({ headerAction = null, onNavigate = () => {} }) 
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isDisabling, setIsDisabling] = useState(false)
+  const [activatingExerciseId, setActivatingExerciseId] = useState(null)
   const savingRef = useRef(false)
   const disablingRef = useRef(false)
+  const activatingRef = useRef(false)
+
+  const exerciseQuery = useCallback(() => {
+    const params = new URLSearchParams()
+    if (selectedCategory) params.set('category', selectedCategory)
+    if (statusFilter !== 'ACTIVE') params.set('status', statusFilter)
+    const query = params.toString()
+    return query ? `?${query}` : ''
+  }, [selectedCategory, statusFilter])
 
   useEffect(() => {
     let ignore = false
@@ -44,8 +61,7 @@ function ExerciseManagementPage({ headerAction = null, onNavigate = () => {} }) 
       setErrorMessage('')
 
       try {
-        const query = selectedCategory ? `?category=${selectedCategory}` : ''
-        const response = await apiFetch(`/api/exercises${query}`)
+        const response = await apiFetch(`/api/exercises${exerciseQuery()}`)
 
         if (!response.ok) {
           throw new Error('운동 목록을 불러오지 못했습니다.')
@@ -71,20 +87,18 @@ function ExerciseManagementPage({ headerAction = null, onNavigate = () => {} }) 
     return () => {
       ignore = true
     }
-  }, [selectedCategory])
+  }, [exerciseQuery])
 
   const filteredExercises = useMemo(() => {
     const keyword = searchText.trim()
 
     return exercises.filter((exercise) => {
-      if (!exercise.active) return false
       return !keyword || exercise.name.includes(keyword)
     })
   }, [exercises, searchText])
 
   async function reloadExercises() {
-    const query = selectedCategory ? `?category=${selectedCategory}` : ''
-    const response = await apiFetch(`/api/exercises${query}`)
+    const response = await apiFetch(`/api/exercises${exerciseQuery()}`)
 
     if (!response.ok) {
       throw new Error('운동 목록을 불러오지 못했습니다.')
@@ -166,6 +180,30 @@ function ExerciseManagementPage({ headerAction = null, onNavigate = () => {} }) 
     }
   }
 
+  async function activateExercise(exercise) {
+    if (exercise.type !== 'CUSTOM' || activatingRef.current) return
+
+    activatingRef.current = true
+    setActivatingExerciseId(exercise.id)
+
+    try {
+      const response = await apiFetch(`/api/exercises/${exercise.id}/active`, {
+        method: 'PATCH',
+      })
+
+      if (!response.ok) {
+        throw new Error('운동을 활성화하지 못했습니다.')
+      }
+
+      await reloadExercises()
+    } catch {
+      setErrorMessage('운동을 활성화하지 못했습니다.')
+    } finally {
+      activatingRef.current = false
+      setActivatingExerciseId(null)
+    }
+  }
+
   const isSheetOpen = editingExercise !== undefined
 
   return (
@@ -207,6 +245,20 @@ function ExerciseManagementPage({ headerAction = null, onNavigate = () => {} }) 
         ))}
       </nav>
 
+      <nav className="category-tabs" aria-label="운동 상태">
+        {statusFilters.map((status) => (
+          <button
+            type="button"
+            className={status.value === statusFilter ? 'active' : ''}
+            aria-pressed={status.value === statusFilter}
+            key={status.value}
+            onClick={() => setStatusFilter(status.value)}
+          >
+            {status.label}
+          </button>
+        ))}
+      </nav>
+
       <section className="exercise-list" aria-label="운동 목록">
         {errorMessage && <p className="error-message">{errorMessage}</p>}
         {isLoading && <p className="empty-message">운동 목록을 불러오는 중입니다.</p>}
@@ -214,16 +266,31 @@ function ExerciseManagementPage({ headerAction = null, onNavigate = () => {} }) 
           <article className="exercise-card" key={exercise.id}>
             <div>
               <h2>{exercise.name}</h2>
-              <p>{categories.find((category) => category.value === exercise.category)?.label ?? exercise.category}</p>
+              <p>
+                {categories.find((category) => category.value === exercise.category)?.label ?? exercise.category}
+                {statusFilter === 'ALL' && ` · ${exercise.active ? '활성' : '비활성'}`}
+              </p>
             </div>
             {exercise.type === 'CUSTOM' && (
               <div className="exercise-actions" aria-label={`${exercise.name} 관리`}>
-                <button type="button" onClick={() => openEditSheet(exercise)}>
-                  수정
-                </button>
-                <button type="button" className="danger" onClick={() => setExerciseToDisable(exercise)}>
-                  비활성화
-                </button>
+                {exercise.active && (
+                  <button type="button" onClick={() => openEditSheet(exercise)}>
+                    수정
+                  </button>
+                )}
+                {exercise.active ? (
+                  <button type="button" className="danger" onClick={() => setExerciseToDisable(exercise)}>
+                    비활성화
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={activatingExerciseId === exercise.id}
+                    onClick={() => activateExercise(exercise)}
+                  >
+                    {activatingExerciseId === exercise.id ? '처리 중' : '활성화'}
+                  </button>
+                )}
               </div>
             )}
           </article>
