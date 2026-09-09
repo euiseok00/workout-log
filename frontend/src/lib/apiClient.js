@@ -1,5 +1,7 @@
 import { supabase } from './supabaseClient.js'
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
+
 export async function apiFetch(url, options = {}) {
   const { data } = await supabase.auth.getSession()
   const accessToken = data.session?.access_token
@@ -11,5 +13,5 @@ export async function apiFetch(url, options = {}) {
   const headers = new Headers(options.headers)
   headers.set('Authorization', `Bearer ${accessToken}`)
 
-  return fetch(url, { ...options, headers })
+  return fetch(`${API_BASE_URL}${url}`, { ...options, headers })
 }
