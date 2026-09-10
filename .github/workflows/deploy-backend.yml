@@ -12,38 +12,29 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
-      - name: Configure SSH
-        run: |
-          mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2_key
-          chmod 600 ~/.ssh/ec2_key
-          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
-
       - name: Deploy backend
         run: |
-          ssh -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" << 'EOF'
-            set -e
+          set -e
 
-            cd ~/workout-log
+          cd ~/workout-log
 
-            git fetch origin main
-            git reset --hard origin/main
+          git fetch origin main
+          git reset --hard origin/main
 
-            docker build -t workout-log-backend ./backend
+          docker build -t workout-log-backend ./backend
 
-            docker rm -f workout-log-backend || true
+          docker rm -f workout-log-backend || true
 
-            docker run -d \
-              --name workout-log-backend \
-              --restart unless-stopped \
-              --env-file .env.ec2 \
-              -p 8080:8080 \
-              workout-log-backend
+          docker run -d \
+            --name workout-log-backend \
+            --restart unless-stopped \
+            --env-file .env.ec2 \
+            -p 8080:8080 \
+            workout-log-backend
 
-            sleep 5
+          sleep 5
 
-            docker ps --filter "name=workout-log-backend"
-          EOF
+          docker ps --filter "name=workout-log-backend"
