@@ -6,6 +6,7 @@ public record WorkoutSummaryResponse(
 	Integer workoutId,
 	LocalDate workoutDate,
 	Integer workoutOrder,
+	String workoutTitle,
 	String memo,
 	Integer exerciseCount,
 	Integer setCount

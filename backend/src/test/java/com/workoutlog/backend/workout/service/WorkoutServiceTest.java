@@ -70,7 +70,7 @@ class WorkoutServiceTest {
 			.thenReturn(2);
 		when(exerciseRepository.findAvailableById(USER_A, 1))
 			.thenReturn(Optional.of(systemExercise(1)));
-		when(workoutRepository.saveWorkout(USER_A, WORKOUT_DATE, 2, "오늘 기록"))
+		when(workoutRepository.saveWorkout(USER_A, WORKOUT_DATE, 2, "상체 기록", "오늘 기록"))
 			.thenReturn(10);
 		when(workoutRepository.saveWorkoutExercise(10, 1, "벤치프레스", ExerciseCategory.CHEST, 1, "벤치 메모", true))
 			.thenReturn(20);
@@ -78,15 +78,17 @@ class WorkoutServiceTest {
 		WorkoutResponse workout = workoutService.createWorkout(
 			USER_A,
 			WORKOUT_DATE,
+			"상체 기록",
 			"오늘 기록",
 			List.of(exerciseRequest)
 		);
 
 		assertEquals(10, workout.workoutId());
 		assertEquals(2, workout.workoutOrder());
+		assertEquals("상체 기록", workout.workoutTitle());
 		assertEquals("벤치프레스", workout.exercises().getFirst().exerciseName());
 		assertEquals(ExerciseCategory.CHEST, workout.exercises().getFirst().exerciseCategory());
-		verify(workoutRepository).saveWorkout(USER_A, WORKOUT_DATE, 2, "오늘 기록");
+		verify(workoutRepository).saveWorkout(USER_A, WORKOUT_DATE, 2, "상체 기록", "오늘 기록");
 		verify(workoutRepository).saveWorkoutSet(20, 1, BigDecimal.valueOf(80), 10, 8, WorkoutSetType.WORKING, true);
 		verify(workoutRepository).saveWorkoutSet(20, 2, BigDecimal.valueOf(80), 10, null, WorkoutSetType.WORKING, false);
 	}
@@ -97,10 +99,10 @@ class WorkoutServiceTest {
 			.thenReturn(1);
 		when(exerciseRepository.findAvailableById(USER_A, 1))
 			.thenReturn(Optional.of(systemExercise(1)));
-		when(workoutRepository.saveWorkout(USER_A, WORKOUT_DATE, 1, null))
+		when(workoutRepository.saveWorkout(USER_A, WORKOUT_DATE, 1, null, null))
 			.thenReturn(10);
 
-		WorkoutResponse workout = workoutService.createWorkout(USER_A, WORKOUT_DATE, null, List.of(exercise(1, 1)));
+		WorkoutResponse workout = workoutService.createWorkout(USER_A, WORKOUT_DATE, null, null, List.of(exercise(1, 1)));
 
 		assertEquals("벤치프레스", workout.exercises().getFirst().exerciseName());
 	}
@@ -117,10 +119,10 @@ class WorkoutServiceTest {
 				ExerciseCategory.BACK,
 				true
 			)));
-		when(workoutRepository.saveWorkout(USER_A, WORKOUT_DATE, 1, null))
+		when(workoutRepository.saveWorkout(USER_A, WORKOUT_DATE, 1, null, null))
 			.thenReturn(10);
 
-		WorkoutResponse workout = workoutService.createWorkout(USER_A, WORKOUT_DATE, null, List.of(exercise(2, 1)));
+		WorkoutResponse workout = workoutService.createWorkout(USER_A, WORKOUT_DATE, null, null, List.of(exercise(2, 1)));
 
 		assertEquals("My Row", workout.exercises().getFirst().exerciseName());
 	}
@@ -134,10 +136,10 @@ class WorkoutServiceTest {
 
 		assertThrows(
 			ExerciseNotFoundException.class,
-			() -> workoutService.createWorkout(USER_A, WORKOUT_DATE, null, List.of(exercise(2, 1)))
+			() -> workoutService.createWorkout(USER_A, WORKOUT_DATE, null, null, List.of(exercise(2, 1)))
 		);
 
-		verify(workoutRepository, never()).saveWorkout(USER_A, WORKOUT_DATE, 1, null);
+		verify(workoutRepository, never()).saveWorkout(USER_A, WORKOUT_DATE, 1, null, null);
 	}
 
 	@Test
@@ -146,10 +148,10 @@ class WorkoutServiceTest {
 			.thenReturn(1);
 		when(exerciseRepository.findAvailableById(USER_A, 1))
 			.thenReturn(Optional.of(systemExercise(1)));
-		when(workoutRepository.saveWorkout(USER_A, WORKOUT_DATE, 1, null))
+		when(workoutRepository.saveWorkout(USER_A, WORKOUT_DATE, 1, null, null))
 			.thenReturn(10);
 
-		WorkoutResponse workout = workoutService.createWorkout(USER_A, WORKOUT_DATE, null, List.of(exercise(1, 1)));
+		WorkoutResponse workout = workoutService.createWorkout(USER_A, WORKOUT_DATE, null, null, List.of(exercise(1, 1)));
 
 		assertEquals(1, workout.workoutOrder());
 		verify(workoutRepository).findNextWorkoutOrder(USER_A, WORKOUT_DATE);
@@ -169,11 +171,12 @@ class WorkoutServiceTest {
 				USER_A,
 				WORKOUT_DATE,
 				null,
+				null,
 				List.of(exercise(1, 1), exercise(2, 1))
 			)
 		);
 
-		verify(workoutRepository, never()).saveWorkout(USER_A, WORKOUT_DATE, 1, null);
+		verify(workoutRepository, never()).saveWorkout(USER_A, WORKOUT_DATE, 1, null, null);
 	}
 
 	@Test
@@ -185,10 +188,10 @@ class WorkoutServiceTest {
 
 		assertThrows(
 			ExerciseNotFoundException.class,
-			() -> workoutService.createWorkout(USER_A, WORKOUT_DATE, null, List.of(exercise(99, 1)))
+			() -> workoutService.createWorkout(USER_A, WORKOUT_DATE, null, null, List.of(exercise(99, 1)))
 		);
 
-		verify(workoutRepository, never()).saveWorkout(USER_A, WORKOUT_DATE, 1, null);
+		verify(workoutRepository, never()).saveWorkout(USER_A, WORKOUT_DATE, 1, null, null);
 	}
 
 	@Test
@@ -206,10 +209,10 @@ class WorkoutServiceTest {
 
 		assertThrows(
 			WorkoutOperationException.class,
-			() -> workoutService.createWorkout(USER_A, WORKOUT_DATE, null, List.of(exercise(1, 1)))
+			() -> workoutService.createWorkout(USER_A, WORKOUT_DATE, null, null, List.of(exercise(1, 1)))
 		);
 
-		verify(workoutRepository, never()).saveWorkout(USER_A, WORKOUT_DATE, 1, null);
+		verify(workoutRepository, never()).saveWorkout(USER_A, WORKOUT_DATE, 1, null, null);
 	}
 
 	@Test
@@ -226,10 +229,10 @@ class WorkoutServiceTest {
 
 		assertThrows(
 			WorkoutOperationException.class,
-			() -> workoutService.createWorkout(USER_A, WORKOUT_DATE, null, List.of(exerciseRequest))
+			() -> workoutService.createWorkout(USER_A, WORKOUT_DATE, null, null, List.of(exerciseRequest))
 		);
 
-		verify(workoutRepository, never()).saveWorkout(USER_A, WORKOUT_DATE, 1, null);
+		verify(workoutRepository, never()).saveWorkout(USER_A, WORKOUT_DATE, 1, null, null);
 	}
 
 	@Test
@@ -241,18 +244,18 @@ class WorkoutServiceTest {
 			.thenReturn(Optional.of(routine));
 		when(exerciseRepository.findAvailableById(USER_A, 1))
 			.thenReturn(Optional.of(systemExercise(1)));
-		when(workoutRepository.saveWorkout(USER_A, WORKOUT_DATE, 3, "오늘 기록"))
+		when(workoutRepository.saveWorkout(USER_A, WORKOUT_DATE, 3, "Push A", "오늘 기록"))
 			.thenReturn(10);
 		when(workoutRepository.saveWorkoutExercise(10, 1, "벤치프레스", ExerciseCategory.CHEST, 1, "벤치 메모", false))
 			.thenReturn(20);
 
-		WorkoutResponse workout = workoutService.createWorkoutFromRoutine(USER_A, 5, WORKOUT_DATE, "오늘 기록");
+		WorkoutResponse workout = workoutService.createWorkoutFromRoutine(USER_A, 5, WORKOUT_DATE, "Push A", "오늘 기록");
 
 		assertEquals(10, workout.workoutId());
 		assertEquals(3, workout.workoutOrder());
 		assertEquals(false, workout.exercises().getFirst().completed());
 		assertEquals(null, workout.exercises().getFirst().sets().getFirst().rpe());
-		verify(workoutRepository).saveWorkout(USER_A, WORKOUT_DATE, 3, "오늘 기록");
+		verify(workoutRepository).saveWorkout(USER_A, WORKOUT_DATE, 3, "Push A", "오늘 기록");
 		verify(workoutRepository).saveWorkoutSet(20, 1, BigDecimal.valueOf(80), 8, null, WorkoutSetType.WORKING, false);
 	}
 
@@ -265,10 +268,10 @@ class WorkoutServiceTest {
 
 		assertThrows(
 			RoutineNotFoundException.class,
-			() -> workoutService.createWorkoutFromRoutine(USER_B, 5, WORKOUT_DATE, null)
+			() -> workoutService.createWorkoutFromRoutine(USER_B, 5, WORKOUT_DATE, null, null)
 		);
 
-		verify(workoutRepository, never()).saveWorkout(USER_B, WORKOUT_DATE, 1, null);
+		verify(workoutRepository, never()).saveWorkout(USER_B, WORKOUT_DATE, 1, null, null);
 	}
 
 	@Test
@@ -333,7 +336,7 @@ class WorkoutServiceTest {
 		WorkoutResponse updated = workoutResponseWithExercise(10, WORKOUT_DATE, 1);
 		when(workoutRepository.findById(USER_A, 10))
 			.thenReturn(Optional.of(current), Optional.of(updated));
-		when(workoutRepository.updateWorkout(USER_A, 10, WORKOUT_DATE, 1, "수정 메모"))
+		when(workoutRepository.updateWorkout(USER_A, 10, WORKOUT_DATE, 1, "수정 제목", "수정 메모"))
 			.thenReturn(1);
 		when(workoutRepository.updateWorkoutExercise(10, 1, 1, "운동 메모", true))
 			.thenReturn(Optional.of(20));
@@ -342,6 +345,7 @@ class WorkoutServiceTest {
 			USER_A,
 			10,
 			WORKOUT_DATE,
+			"수정 제목",
 			"수정 메모",
 			List.of(new WorkoutExerciseRequest(
 				1,
@@ -353,7 +357,7 @@ class WorkoutServiceTest {
 		);
 
 		assertEquals(updated, result);
-		verify(workoutRepository).updateWorkout(USER_A, 10, WORKOUT_DATE, 1, "수정 메모");
+		verify(workoutRepository).updateWorkout(USER_A, 10, WORKOUT_DATE, 1, "수정 제목", "수정 메모");
 		verify(workoutRepository).updateWorkoutExercise(10, 1, 1, "운동 메모", true);
 		verify(workoutRepository).deleteWorkoutSets(20);
 		verify(workoutRepository).saveWorkoutSet(20, 1, BigDecimal.valueOf(80), 10, 9, WorkoutSetType.WORKING, true);
@@ -372,11 +376,12 @@ class WorkoutServiceTest {
 				10,
 				WORKOUT_DATE,
 				null,
+				null,
 				List.of(exercise(2, 1))
 			)
 		);
 
-		verify(workoutRepository, never()).updateWorkout(USER_A, 10, WORKOUT_DATE, 1, null);
+		verify(workoutRepository, never()).updateWorkout(USER_A, 10, WORKOUT_DATE, 1, null, null);
 	}
 
 	@Test
@@ -436,6 +441,7 @@ class WorkoutServiceTest {
 			workoutId,
 			WORKOUT_DATE,
 			1,
+			"하체 기록",
 			"가슴 운동",
 			4,
 			14
@@ -447,6 +453,7 @@ class WorkoutServiceTest {
 			workoutId,
 			WORKOUT_DATE,
 			1,
+			"오늘 제목",
 			"오늘 기록",
 			List.of()
 		);
@@ -457,6 +464,7 @@ class WorkoutServiceTest {
 			workoutId,
 			workoutDate,
 			workoutOrder,
+			"오늘 제목",
 			"오늘 기록",
 			List.of(new WorkoutExerciseResponse(
 				1,

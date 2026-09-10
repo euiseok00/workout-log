@@ -44,17 +44,33 @@ input,
 select,
 textarea {
   -webkit-tap-highlight-color: transparent;
-}
-
-button,
-input,
-select,
-textarea {
   font: inherit;
 }
 
 button {
   cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+h1, h2, h3, p, button, label {
+  overflow-wrap: anywhere;
+}
+
+body:has(.sheet-backdrop) {
+  overflow: hidden;
 }
 
 button:disabled,

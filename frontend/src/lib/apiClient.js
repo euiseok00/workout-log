@@ -2,8 +2,6 @@ import { supabase } from './supabaseClient.js'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 
-console.log('API_BASE_URL:', API_BASE_URL)
-
 export async function apiFetch(url, options = {}) {
   const { data } = await supabase.auth.getSession()
   const accessToken = data.session?.access_token

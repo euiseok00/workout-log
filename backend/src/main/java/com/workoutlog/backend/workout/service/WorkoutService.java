@@ -49,12 +49,13 @@ public class WorkoutService {
 	public WorkoutResponse createWorkout(
 		UUID userId,
 		LocalDate workoutDate,
+		String workoutTitle,
 		String memo,
 		List<WorkoutExerciseRequest> workoutExercises
 	) {
 		Integer workoutOrder = workoutRepository.findNextWorkoutOrder(userId, workoutDate);
 		List<ExerciseToSave> exercises = validateWorkoutExercises(userId, workoutExercises);
-		Integer workoutId = workoutRepository.saveWorkout(userId, workoutDate, workoutOrder, memo);
+		Integer workoutId = workoutRepository.saveWorkout(userId, workoutDate, workoutOrder, workoutTitle, memo);
 
 		for (ExerciseToSave exercise : exercises) {
 			Integer workoutExerciseId = workoutRepository.saveWorkoutExercise(
@@ -84,6 +85,7 @@ public class WorkoutService {
 			workoutId,
 			workoutDate,
 			workoutOrder,
+			workoutTitle,
 			memo,
 			exercises.stream()
 				.sorted(Comparator.comparing(ExerciseToSave::exerciseOrder))
@@ -97,13 +99,14 @@ public class WorkoutService {
 		UUID userId,
 		Integer routineId,
 		LocalDate workoutDate,
+		String workoutTitle,
 		String memo
 	) {
 		Integer workoutOrder = workoutRepository.findNextWorkoutOrder(userId, workoutDate);
 		RoutineDetail routine = routineRepository.findDetailById(userId, routineId)
 			.orElseThrow(() -> new RoutineNotFoundException(routineId));
 		validateRoutineExercises(userId, routine.exercises());
-		Integer workoutId = workoutRepository.saveWorkout(userId, workoutDate, workoutOrder, memo);
+		Integer workoutId = workoutRepository.saveWorkout(userId, workoutDate, workoutOrder, workoutTitle, memo);
 		List<WorkoutExerciseResponse> exerciseResponses = new ArrayList<>();
 
 		for (RoutineExerciseDetail routineExercise : routine.exercises()) {
@@ -154,6 +157,7 @@ public class WorkoutService {
 			workoutId,
 			workoutDate,
 			workoutOrder,
+			workoutTitle,
 			memo,
 			exerciseResponses
 		);
@@ -170,6 +174,7 @@ public class WorkoutService {
 		UUID userId,
 		Integer workoutId,
 		LocalDate workoutDate,
+		String workoutTitle,
 		String memo,
 		List<WorkoutExerciseRequest> workoutExercises
 	) {
@@ -179,7 +184,7 @@ public class WorkoutService {
 		Integer workoutOrder = current.workoutDate().equals(workoutDate)
 			? current.workoutOrder()
 			: workoutRepository.findNextWorkoutOrder(userId, workoutDate);
-		int updatedCount = workoutRepository.updateWorkout(userId, workoutId, workoutDate, workoutOrder, memo);
+		int updatedCount = workoutRepository.updateWorkout(userId, workoutId, workoutDate, workoutOrder, workoutTitle, memo);
 		if (updatedCount == 0) {
 			throw new WorkoutNotFoundException(workoutId);
 		}

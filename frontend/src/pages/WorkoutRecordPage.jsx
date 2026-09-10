@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 import workoutFlame from '../assets/workout-flame.png'
 import { apiFetch } from '../lib/apiClient.js'
+import TransitionPresence from '../components/TransitionPresence.jsx'
 import { isDbWeightInput } from '../utils/numberInputs.js'
 
 const navItems = [
@@ -70,6 +71,10 @@ function countSets(workout) {
   )
 }
 
+function workoutDisplayTitle(workout) {
+  return workout.workoutTitle || `운동 기록 ${workout.workoutOrder}`
+}
+
 function categoryLabel(value) {
   return categories.find((category) => category.value === value)?.label ?? value
 }
@@ -83,6 +88,7 @@ function countedSetNumber(sets, setIndex) {
 function toEditForm(workout) {
   return {
     workoutDate: workout.workoutDate,
+    workoutTitle: workout.workoutTitle ?? '',
     memo: workout.memo ?? '',
     exercises: workout.exercises
       .slice()
@@ -108,7 +114,7 @@ function toEditForm(workout) {
   }
 }
 
-function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
+function WorkoutRecordPage({ headerAction = null, onNavigate = () => {}, onSelectWorkout = null }) {
   const initialMonth = useMemo(() => currentMonth(), [])
   const [calendarMonth, setCalendarMonth] = useState(initialMonth)
   const [recordDates, setRecordDates] = useState([])
@@ -129,6 +135,10 @@ function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
   const [editForm, setEditForm] = useState(null)
   const deletingRef = useRef(false)
   const updatingRef = useRef(false)
+  const detailRequestRef = useRef(0)
+  const loadingDetailRef = useRef(false)
+
+  useEffect(() => () => { detailRequestRef.current += 1 }, [])
 
   const calendarDays = useMemo(
     () => buildCalendarDays(calendarMonth.year, calendarMonth.month),
@@ -216,7 +226,10 @@ function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
   }
 
   async function openDetail(workoutId) {
-    setView('detail')
+    if (loadingDetailRef.current) return
+    loadingDetailRef.current = true
+    const requestId = ++detailRequestRef.current
+    if (!onSelectWorkout) setView('detail')
     setDetail(null)
     setDetailError('')
     setIsEditing(false)
@@ -226,11 +239,15 @@ function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
     try {
       const response = await apiFetch(`/api/workouts/${workoutId}`)
       if (!response.ok) throw new Error()
-      setDetail(await response.json())
+      const workout = await response.json()
+      if (requestId !== detailRequestRef.current) return
+      if (onSelectWorkout) onSelectWorkout(workout)
+      else setDetail(workout)
     } catch {
-      setDetailError('운동 기록 상세를 불러오지 못했습니다.')
+      if (requestId === detailRequestRef.current) setDetailError('운동 기록 상세를 불러오지 못했습니다.')
     } finally {
-      setIsDetailLoading(false)
+      loadingDetailRef.current = false
+      if (requestId === detailRequestRef.current) setIsDetailLoading(false)
     }
   }
 
@@ -309,6 +326,7 @@ function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
   function buildEditPayload() {
     return {
       workoutDate: editForm.workoutDate,
+      workoutTitle: editForm.workoutTitle.trim(),
       memo: editForm.memo.trim(),
       exercises: editForm.exercises.map((exercise) => ({
         exerciseId: exercise.exerciseId,
@@ -423,7 +441,7 @@ function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
           <section className="routine-builder" aria-label="운동 기록 상세">
             <section className="routine-section record-detail-header-card">
               <div>
-                <p>운동 기록 {detail.workoutOrder}</p>
+                <p>{workoutDisplayTitle(detail)}</p>
                 <div className="record-detail-summary">
                   <strong>운동 {detail.exercises.length}개</strong>
                   <span>총 {totalSets}세트</span>
@@ -491,6 +509,15 @@ function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
         {detail && isEditing && editForm && (
           <form className="routine-builder" aria-label="운동 기록 수정" onSubmit={saveEdit}>
             <section className="routine-section record-detail-header-card">
+              <label>
+                기록 제목
+                <input
+                  type="text"
+                  value={editForm.workoutTitle}
+                  placeholder="예: 월요일 상체"
+                  onChange={(event) => updateWorkoutField('workoutTitle', event.target.value)}
+                />
+              </label>
               <label>
                 운동 날짜
                 <input
@@ -587,7 +614,7 @@ function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
                         </label>
                         <button
                           type="button"
-                          className="set-remove-button workout-set-delete"
+                          className="workout-set-delete"
                           aria-label={`${setIndex + 1}세트 삭제`}
                           disabled={exercise.sets.length === 1}
                           onClick={() => removeSet(exerciseIndex, setIndex)}
@@ -631,7 +658,7 @@ function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
       <header className="page-header">
         <div>
           <p className="eyebrow">RECORDS</p>
-          <h1>운동 기록</h1>
+          <h1>{onSelectWorkout ? '이전 기록 불러오기' : '운동 기록'}</h1>
         </div>
         {headerAction}
       </header>
@@ -658,7 +685,7 @@ function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
               >
                 {isMonthPickerOpen ? '▴' : '▾'}
               </button>
-              {isMonthPickerOpen && (
+              <TransitionPresence>{isMonthPickerOpen && (
                 <div className="record-month-dropdown">
                   <div className="record-month-dropdown-header">
                     <strong>직접 선택</strong>
@@ -696,7 +723,7 @@ function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
                     </div>
                   </div>
                 </div>
-              )}
+              )}</TransitionPresence>
             </div>
             <button type="button" className="record-month-arrow" aria-label="다음 달" onClick={() => moveMonth(1)}>
               ›
@@ -735,6 +762,8 @@ function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
             <h2>{formatDisplayDate(selectedDate)}</h2>
           </div>
           {listError && <p className="error-message">{listError}</p>}
+          {onSelectWorkout && detailError && <p className="error-message">{detailError}</p>}
+          {onSelectWorkout && isDetailLoading && <p className="empty-message" role="status">상세 기록을 불러오는 중입니다.</p>}
           {isListLoading && <p className="empty-message">운동 기록을 불러오는 중입니다.</p>}
           {!isListLoading && !listError && workouts.length === 0 && (
             <p className="empty-message">이 날짜에는 운동 기록이 없습니다.</p>
@@ -745,10 +774,11 @@ function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
                 type="button"
                 className="exercise-card routine-card-button workout-record-card"
                 key={workout.workoutId}
+                disabled={isDetailLoading || isListLoading}
                 onClick={() => openDetail(workout.workoutId)}
               >
                 <div className="workout-record-card-body">
-                  <h2>운동 기록 {workout.workoutOrder}</h2>
+                  <h2>{workoutDisplayTitle(workout)}</h2>
                   <p>
                     {workout.exerciseCount}개 운동 · {workout.setCount}세트
                   </p>
@@ -761,7 +791,7 @@ function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
         </section>
       </section>
 
-      <nav className="bottom-nav" aria-label="하단 메뉴">
+      {!onSelectWorkout && <nav className="bottom-nav" aria-label="하단 메뉴">
         {navItems.map((item) => (
           <button
             type="button"
@@ -772,7 +802,7 @@ function WorkoutRecordPage({ headerAction = null, onNavigate = () => {} }) {
             {item.label}
           </button>
         ))}
-      </nav>
+      </nav>}
     </main>
   )
 }

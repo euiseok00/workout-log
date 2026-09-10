@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { apiFetch } from '../lib/apiClient.js'
+import TransitionPresence from '../components/TransitionPresence.jsx'
 import { isDbWeightInput } from '../utils/numberInputs.js'
 
 const categories = [
@@ -606,7 +607,7 @@ function RoutineManagementPage({ headerAction = null, onNavigate = () => {} }) {
                               </label>
                               <button
                                 type="button"
-                                className="set-remove-button workout-set-delete"
+                                className="workout-set-delete"
                                 aria-label={`${setIndex + 1}세트 삭제`}
                                 disabled={exercise.sets.length === 1}
                                 onClick={() => {
@@ -657,7 +658,7 @@ function RoutineManagementPage({ headerAction = null, onNavigate = () => {} }) {
         ))}
       </nav>
 
-      {pendingNavigation && (
+      <TransitionPresence>{pendingNavigation && (
         <div className="sheet-backdrop" role="presentation" onClick={closeDraftPrompt}>
           <section
             className="confirm-sheet"
@@ -681,9 +682,9 @@ function RoutineManagementPage({ headerAction = null, onNavigate = () => {} }) {
             </div>
           </section>
         </div>
-      )}
+      )}</TransitionPresence>
 
-      {isExerciseSheetOpen && (
+      <TransitionPresence>{isExerciseSheetOpen && (
         <div className="sheet-backdrop" role="presentation" onClick={() => setIsExerciseSheetOpen(false)}>
           <section
             className="bottom-sheet"
@@ -740,7 +741,7 @@ function RoutineManagementPage({ headerAction = null, onNavigate = () => {} }) {
             </div>
           </section>
         </div>
-      )}
+      )}</TransitionPresence>
     </main>
   )
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { apiFetch } from '../lib/apiClient.js'
+import TransitionPresence from '../components/TransitionPresence.jsx'
 
 const categories = [
   { label: '전체', value: '' },
@@ -311,7 +312,7 @@ function ExerciseManagementPage({ headerAction = null, onNavigate = () => {} }) 
         ))}
       </nav>
 
-      {isSheetOpen && (
+      <TransitionPresence>{isSheetOpen && (
         <div className="sheet-backdrop" role="presentation" onClick={closeSheet}>
           <section
             className="bottom-sheet"
@@ -358,9 +359,9 @@ function ExerciseManagementPage({ headerAction = null, onNavigate = () => {} }) 
             </form>
           </section>
         </div>
-      )}
+      )}</TransitionPresence>
 
-      {exerciseToDisable && (
+      <TransitionPresence>{exerciseToDisable && (
         <div className="sheet-backdrop" role="presentation" onClick={() => setExerciseToDisable(null)}>
           <section
             className="confirm-sheet"
@@ -381,7 +382,7 @@ function ExerciseManagementPage({ headerAction = null, onNavigate = () => {} }) 
             </div>
           </section>
         </div>
-      )}
+      )}</TransitionPresence>
     </main>
   )
 }

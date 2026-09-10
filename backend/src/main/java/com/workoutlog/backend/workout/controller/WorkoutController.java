@@ -49,6 +49,7 @@ public class WorkoutController {
 		WorkoutResponse workout = workoutService.createWorkout(
 			userId,
 			request.workoutDate(),
+			request.workoutTitle(),
 			request.memo(),
 			request.exercises()
 		);
@@ -68,6 +69,7 @@ public class WorkoutController {
 			userId,
 			request.routineId(),
 			request.workoutDate(),
+			request.workoutTitle(),
 			request.memo()
 		);
 
@@ -115,6 +117,7 @@ public class WorkoutController {
 			userId,
 			workoutId,
 			request.workoutDate(),
+			request.workoutTitle(),
 			request.memo(),
 			request.exercises()
 		);

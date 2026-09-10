@@ -7,6 +7,7 @@ public record WorkoutResponse(
 	Integer workoutId,
 	LocalDate workoutDate,
 	Integer workoutOrder,
+	String workoutTitle,
 	String memo,
 	List<WorkoutExerciseResponse> exercises
 ) {

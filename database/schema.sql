@@ -85,6 +85,7 @@ CREATE TABLE public.workouts (
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     workout_date DATE NOT NULL,
     workout_order INTEGER NOT NULL,
+    workout_title VARCHAR(50),
     memo TEXT,
 
     UNIQUE (user_id, workout_date, workout_order),

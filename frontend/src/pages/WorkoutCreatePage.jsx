@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { apiFetch } from '../lib/apiClient.js'
 import { isDbWeightInput } from '../utils/numberInputs.js'
+import WorkoutRecordPage from './WorkoutRecordPage.jsx'
+import TransitionPresence from '../components/TransitionPresence.jsx'
 
 const categories = [
   { label: '전체', value: '' },
@@ -69,6 +71,7 @@ function toWorkoutExercises(exercises) {
         .map((set) => ({
           weight: set.weight,
           reps: set.reps,
+          rpe: set.rpe ?? null,
           setType: set.setType,
           completed: Boolean(set.completed),
         })),
@@ -87,6 +90,7 @@ async function readErrorMessage(response) {
 function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
   const initialDraft = useMemo(() => readDraft(), [])
   const [workoutDate, setWorkoutDate] = useState(initialDraft?.workoutDate ?? today)
+  const [workoutTitle, setWorkoutTitle] = useState(initialDraft?.workoutTitle ?? '')
   const [memo, setMemo] = useState(initialDraft?.memo ?? '')
   const [selectedExercises, setSelectedExercises] = useState(initialDraft?.selectedExercises ?? [])
   const [routines, setRoutines] = useState([])
@@ -94,6 +98,7 @@ function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
   const [selectedCategory, setSelectedCategory] = useState('')
   const [exerciseSearchText, setExerciseSearchText] = useState('')
   const [isRoutineSheetOpen, setIsRoutineSheetOpen] = useState(false)
+  const [isPreviousWorkoutOpen, setIsPreviousWorkoutOpen] = useState(false)
   const [isExerciseSheetOpen, setIsExerciseSheetOpen] = useState(false)
   const [isRoutineLoading, setIsRoutineLoading] = useState(false)
   const [isExerciseLoading, setIsExerciseLoading] = useState(false)
@@ -138,8 +143,8 @@ function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
   }, [selectedCategory])
 
   function currentDraftValue() {
-    const hasDraft = memo.trim() || selectedExercises.length > 0 || workoutDate !== today()
-    return hasDraft ? JSON.stringify({ workoutDate, memo, selectedExercises }) : ''
+    const hasDraft = workoutTitle.trim() || memo.trim() || selectedExercises.length > 0 || workoutDate !== today()
+    return hasDraft ? JSON.stringify({ workoutDate, workoutTitle, memo, selectedExercises }) : ''
   }
 
   function saveDraft() {
@@ -324,6 +329,7 @@ function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
   function buildPayload() {
     return {
       workoutDate,
+      workoutTitle: workoutTitle.trim(),
       memo: memo.trim(),
       exercises: selectedExercises.map((exercise, exerciseIndex) => ({
         exerciseId: exercise.id,
@@ -333,7 +339,7 @@ function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
           setOrder: setIndex + 1,
           weight: Number(set.weight),
           reps: Number(set.reps),
-          rpe: null,
+          rpe: set.rpe ?? null,
           setType: set.setType,
           completed: set.completed,
         })),
@@ -365,6 +371,7 @@ function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
       if (!response.ok) throw new Error(await readErrorMessage(response))
 
       setWorkoutDate(today())
+      setWorkoutTitle('')
       setMemo('')
       setSelectedExercises([])
       localStorage.removeItem(draftStorageKey)
@@ -383,6 +390,28 @@ function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
       savingRef.current = false
       setIsSaving(false)
     }
+  }
+
+  if (isPreviousWorkoutOpen) {
+    return (
+      <WorkoutRecordPage
+        headerAction={
+          <button type="button" className="ghost-button" onClick={() => setIsPreviousWorkoutOpen(false)}>
+            취소
+          </button>
+        }
+        onSelectWorkout={(workout) => {
+          if (selectedExercises.length > 0 && !window.confirm('작성 중인 운동 목록을 선택한 기록으로 교체할까요?')) return
+          setSelectedExercises(toWorkoutExercises(workout.exercises).map((exercise) => ({
+            ...exercise,
+            sets: exercise.sets.map((set) => ({ ...set, completed: false })),
+          })))
+          setErrorMessage('')
+          setToastMessage('')
+          setIsPreviousWorkoutOpen(false)
+        }}
+      />
+    )
   }
 
   return (
@@ -406,6 +435,15 @@ function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
 
         <section className="routine-section" aria-label="운동 기록 기본 정보">
           <label>
+            기록 제목
+            <input
+              type="text"
+              value={workoutTitle}
+              placeholder="예: 월요일 상체"
+              onChange={(event) => setWorkoutTitle(event.target.value)}
+            />
+          </label>
+          <label>
             운동 날짜
             <input type="date" value={workoutDate} onChange={(event) => setWorkoutDate(event.target.value)} />
           </label>
@@ -421,6 +459,9 @@ function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
               운동 직접 추가
             </button>
           </div>
+          <button type="button" className="ghost-button" disabled={isSaving} onClick={() => setIsPreviousWorkoutOpen(true)}>
+            이전 기록 불러오기
+          </button>
         </section>
 
         <section className="routine-section" aria-label="운동 목록">
@@ -512,7 +553,7 @@ function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
                         </label>
                         <button
                           type="button"
-                          className="set-remove-button workout-set-delete"
+                          className="workout-set-delete"
                           aria-label={`${setIndex + 1}세트 삭제`}
                           disabled={exercise.sets.length === 1}
                           onClick={() => {
@@ -554,7 +595,7 @@ function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
         ))}
       </nav>
 
-      {pendingNavigation && (
+      <TransitionPresence>{pendingNavigation && (
         <div className="sheet-backdrop" role="presentation" onClick={closeDraftPrompt}>
           <section
             className="confirm-sheet"
@@ -578,9 +619,9 @@ function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
             </div>
           </section>
         </div>
-      )}
+      )}</TransitionPresence>
 
-      {isRoutineSheetOpen && (
+      <TransitionPresence>{isRoutineSheetOpen && (
         <div className="sheet-backdrop" role="presentation" onClick={() => setIsRoutineSheetOpen(false)}>
           <section
             className="bottom-sheet"
@@ -613,9 +654,9 @@ function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
             </div>
           </section>
         </div>
-      )}
+      )}</TransitionPresence>
 
-      {isExerciseSheetOpen && (
+      <TransitionPresence>{isExerciseSheetOpen && (
         <div className="sheet-backdrop" role="presentation" onClick={() => setIsExerciseSheetOpen(false)}>
           <section
             className="bottom-sheet"
@@ -671,7 +712,7 @@ function WorkoutCreatePage({ headerAction = null, onNavigate = () => {} }) {
             </div>
           </section>
         </div>
-      )}
+      )}</TransitionPresence>
     </main>
   )
 }

@@ -106,6 +106,7 @@ public class WorkoutRepository {
 			workout.workoutId(),
 			workout.workoutDate(),
 			workout.workoutOrder(),
+			workout.workoutTitle(),
 			workout.memo(),
 			exercises.values()
 				.stream()
@@ -135,6 +136,7 @@ public class WorkoutRepository {
 				SELECT w.workout_id,
 				       w.workout_date,
 				       w.workout_order,
+				       w.workout_title,
 				       w.memo,
 				       COUNT(DISTINCT we.workout_exercise_id) AS exercise_count,
 				       COUNT(ws.workout_set_id) FILTER (WHERE ws.set_type <> 'WARMUP') AS set_count
@@ -143,7 +145,7 @@ public class WorkoutRepository {
 				LEFT JOIN workout_sets ws ON we.workout_exercise_id = ws.workout_exercise_id
 				WHERE w.user_id = :userId
 				  AND w.workout_date = :date
-				GROUP BY w.workout_id, w.workout_date, w.workout_order, w.memo
+				GROUP BY w.workout_id, w.workout_date, w.workout_order, w.workout_title, w.memo
 				ORDER BY w.workout_order
 				""")
 			.param("userId", userId)
@@ -152,6 +154,7 @@ public class WorkoutRepository {
 				rs.getInt("workout_id"),
 				rs.getObject("workout_date", LocalDate.class),
 				rs.getInt("workout_order"),
+				rs.getString("workout_title"),
 				rs.getString("memo"),
 				rs.getInt("exercise_count"),
 				rs.getInt("set_count")
@@ -159,15 +162,16 @@ public class WorkoutRepository {
 			.list();
 	}
 
-	public Integer saveWorkout(UUID userId, LocalDate workoutDate, Integer workoutOrder, String memo) {
+	public Integer saveWorkout(UUID userId, LocalDate workoutDate, Integer workoutOrder, String workoutTitle, String memo) {
 		return jdbcClient.sql("""
-				INSERT INTO workouts (user_id, workout_date, workout_order, memo)
-				VALUES (:userId, :workoutDate, :workoutOrder, :memo)
+				INSERT INTO workouts (user_id, workout_date, workout_order, workout_title, memo)
+				VALUES (:userId, :workoutDate, :workoutOrder, :workoutTitle, :memo)
 				RETURNING workout_id
 				""")
 			.param("userId", userId)
 			.param("workoutDate", workoutDate)
 			.param("workoutOrder", workoutOrder)
+			.param("workoutTitle", workoutTitle)
 			.param("memo", memo)
 			.query(Integer.class)
 			.single();
@@ -253,11 +257,19 @@ public class WorkoutRepository {
 			.update();
 	}
 
-	public int updateWorkout(UUID userId, Integer workoutId, LocalDate workoutDate, Integer workoutOrder, String memo) {
+	public int updateWorkout(
+		UUID userId,
+		Integer workoutId,
+		LocalDate workoutDate,
+		Integer workoutOrder,
+		String workoutTitle,
+		String memo
+	) {
 		return jdbcClient.sql("""
 				UPDATE workouts
 				SET workout_date = :workoutDate,
 				    workout_order = :workoutOrder,
+				    workout_title = :workoutTitle,
 				    memo = :memo
 				WHERE workout_id = :workoutId
 				  AND user_id = :userId
@@ -266,6 +278,7 @@ public class WorkoutRepository {
 			.param("workoutId", workoutId)
 			.param("workoutDate", workoutDate)
 			.param("workoutOrder", workoutOrder)
+			.param("workoutTitle", workoutTitle)
 			.param("memo", memo)
 			.update();
 	}
@@ -317,7 +330,7 @@ public class WorkoutRepository {
 
 	private Optional<WorkoutHeader> findHeaderById(UUID userId, Integer workoutId) {
 		return jdbcClient.sql("""
-				SELECT workout_id, workout_date, workout_order, memo
+				SELECT workout_id, workout_date, workout_order, workout_title, memo
 				FROM workouts
 				WHERE workout_id = :workoutId
 				  AND user_id = :userId
@@ -328,6 +341,7 @@ public class WorkoutRepository {
 				rs.getInt("workout_id"),
 				rs.getObject("workout_date", LocalDate.class),
 				rs.getInt("workout_order"),
+				rs.getString("workout_title"),
 				rs.getString("memo")
 			))
 			.optional();
@@ -337,6 +351,7 @@ public class WorkoutRepository {
 		Integer workoutId,
 		LocalDate workoutDate,
 		Integer workoutOrder,
+		String workoutTitle,
 		String memo
 	) {
 	}
