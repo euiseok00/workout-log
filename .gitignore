@@ -1,3 +1,7 @@
 # Codex harness runtime records
 .harness/runs/
 _workspace/communications/
+
+# IntelliJ IDEA
+.idea/
+*.iml
