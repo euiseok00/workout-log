@@ -81,6 +81,7 @@ class WorkoutSessionApiTests extends PostgresIntegrationTest {
 		mockMvc.perform(get("/api/workout-sessions/{sessionId}", sessionId).with(jwtFor(user)))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.routineId").value(nullValue()))
+				.andExpect(jsonPath("$.routineName").value(nullValue()))
 				.andExpect(jsonPath("$.exercises[0].exerciseId").value(pullUpId))
 				.andExpect(jsonPath("$.exercises[0].name").value("풀업"))
 				.andExpect(jsonPath("$.exercises[0].bodyPart").value("BACK"))
@@ -108,8 +109,10 @@ class WorkoutSessionApiTests extends PostgresIntegrationTest {
 				.andExpect(jsonPath("$.length()").value(2))
 				.andExpect(jsonPath("$[0].id").value(freeSessionId))
 				.andExpect(jsonPath("$[0].workoutDate").value(LocalDate.now().toString()))
+				.andExpect(jsonPath("$[0].routineName").value(nullValue()))
 				.andExpect(jsonPath("$[1].id").value(routineSessionId))
-				.andExpect(jsonPath("$[1].routineId").value(routine.getId()));
+				.andExpect(jsonPath("$[1].routineId").value(routine.getId()))
+				.andExpect(jsonPath("$[1].routineName").value("목록 루틴"));
 	}
 
 	@Test
@@ -145,6 +148,7 @@ class WorkoutSessionApiTests extends PostgresIntegrationTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.workoutDate").value(LocalDate.now().toString()))
 				.andExpect(jsonPath("$.routineId").value(routine.getId()))
+				.andExpect(jsonPath("$.routineName").value("수정 루틴"))
 				.andExpect(jsonPath("$.exercises[0].exerciseId").value(squatId))
 				.andExpect(jsonPath("$.exercises[1].exerciseId").value(customExercise.getId()))
 				.andExpect(jsonPath("$.exercises[1].sets[0].setNumber").value(1))

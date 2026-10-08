@@ -7,11 +7,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.LocalDate;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.workoutlog.backend.PostgresIntegrationTest;
@@ -25,6 +28,9 @@ class ExerciseApiTests extends PostgresIntegrationTest {
 
 	@Autowired
 	private ExerciseRepository exerciseRepository;
+
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
 
 	@Autowired
 	private UserRepository userRepository;
@@ -138,6 +144,78 @@ class ExerciseApiTests extends PostgresIntegrationTest {
 				.andExpect(status().isUnauthorized());
 	}
 
+	@Test
+	void returnsExerciseRecordsNewestFirstWithOrderedSetsForCurrentUserOnly() throws Exception {
+		User currentUser = saveUser("record_user");
+		User otherUser = saveUser("record_other");
+		Integer exerciseId = defaultExerciseId("벤치프레스");
+		LocalDate today = LocalDate.now();
+		createSession(currentUser, today.minusDays(2), exerciseId, """
+				{"setNumber":2,"weight":70.00,"reps":8,"completed":false},
+				{"setNumber":1,"weight":60.00,"reps":12,"completed":true}
+				""");
+		createSession(currentUser, today, exerciseId,
+				"{\"setNumber\":1,\"weight\":75.50,\"reps\":6,\"completed\":true}");
+		createSession(otherUser, today, exerciseId,
+				"{\"setNumber\":1,\"weight\":200.00,\"reps\":20,\"completed\":true}");
+
+		mockMvc.perform(get("/api/exercises/{exerciseId}/records", exerciseId).with(jwtFor(currentUser)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.length()").value(2))
+				.andExpect(jsonPath("$[0].workoutDate").value(today.toString()))
+				.andExpect(jsonPath("$[0].exerciseId").value(exerciseId))
+				.andExpect(jsonPath("$[0].exerciseName").value("벤치프레스"))
+				.andExpect(jsonPath("$[0].sets[0].weight").value(75.5))
+				.andExpect(jsonPath("$[1].workoutDate").value(today.minusDays(2).toString()))
+				.andExpect(jsonPath("$[1].sets[0].setNumber").value(1))
+				.andExpect(jsonPath("$[1].sets[0].weight").value(60.0))
+				.andExpect(jsonPath("$[1].sets[0].reps").value(12))
+				.andExpect(jsonPath("$[1].sets[0].completed").value(true))
+				.andExpect(jsonPath("$[1].sets[1].setNumber").value(2))
+				.andExpect(jsonPath("$[1].sets[1].completed").value(false));
+	}
+
+	@Test
+	void returnsEmptyForOwnExerciseWithoutRecordsAndRejectsAnotherUsersExercise() throws Exception {
+		User currentUser = saveUser("record_empty");
+		User otherUser = saveUser("record_private");
+		Exercise ownExercise = exerciseRepository.save(new Exercise("내 운동", BodyPart.ARMS, currentUser.getId()));
+		Exercise privateExercise = exerciseRepository.save(new Exercise("타인 운동", BodyPart.BACK, otherUser.getId()));
+
+		mockMvc.perform(get("/api/exercises/{exerciseId}/records", ownExercise.getId()).with(jwtFor(currentUser)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.length()").value(0));
+
+		mockMvc.perform(get("/api/exercises/{exerciseId}/records", privateExercise.getId()).with(jwtFor(currentUser)))
+				.andExpect(status().isNotFound());
+	}
+
+	private void createSession(User user, LocalDate workoutDate, Integer exerciseId, String sets) throws Exception {
+		mockMvc.perform(post("/api/workout-sessions")
+				.with(jwtFor(user))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{
+						  "workoutDate":"%s",
+						  "routineId":null,
+						  "exercises":[{
+						    "exerciseId":%d,
+						    "exerciseOrder":1,
+						    "sets":[%s]
+						  }]
+						}
+						""".formatted(workoutDate, exerciseId, sets)))
+				.andExpect(status().isCreated());
+	}
+
+	private Integer defaultExerciseId(String name) {
+		return exerciseRepository.findAll().stream()
+				.filter(exercise -> exercise.getUserId() == null && exercise.getName().equals(name))
+				.findFirst()
+				.orElseThrow()
+				.getId();
+	}
+
 	private User saveUser(String loginId) {
 		return userRepository.save(new User(loginId, "password-hash"));
 	}
@@ -155,6 +233,11 @@ class ExerciseApiTests extends PostgresIntegrationTest {
 	}
 
 	private void clearDatabase() {
+		jdbcTemplate.update("DELETE FROM exercise_set");
+		jdbcTemplate.update("DELETE FROM exercise_in_session");
+		jdbcTemplate.update("DELETE FROM workout_session");
+		jdbcTemplate.update("DELETE FROM exercise_in_routine");
+		jdbcTemplate.update("DELETE FROM routine");
 		exerciseRepository.deleteAll(exerciseRepository.findAll().stream()
 				.filter(exercise -> exercise.getUserId() != null)
 				.toList());

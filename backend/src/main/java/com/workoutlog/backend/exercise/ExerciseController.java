@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.workoutlog.backend.exercise.dto.ExerciseRequest;
+import com.workoutlog.backend.exercise.dto.ExerciseRecordResponse;
 import com.workoutlog.backend.exercise.dto.ExerciseResponse;
 
 import jakarta.validation.Valid;
@@ -30,6 +32,12 @@ public class ExerciseController {
 	@GetMapping
 	public List<ExerciseResponse> getExercises(@AuthenticationPrincipal Jwt jwt) {
 		return exerciseService.getExercises(Integer.valueOf(jwt.getSubject()));
+	}
+
+	@GetMapping("/{exerciseId}/records")
+	public List<ExerciseRecordResponse> getExerciseRecords(@PathVariable Integer exerciseId,
+			@AuthenticationPrincipal Jwt jwt) {
+		return exerciseService.getExerciseRecords(exerciseId, Integer.valueOf(jwt.getSubject()));
 	}
 
 	@PostMapping

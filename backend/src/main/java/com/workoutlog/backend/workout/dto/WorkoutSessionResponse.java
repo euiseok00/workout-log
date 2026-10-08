@@ -14,10 +14,11 @@ public record WorkoutSessionResponse(
 		Integer id,
 		LocalDate workoutDate,
 		Integer routineId,
+		String routineName,
 		List<ExerciseResponse> exercises) {
 
-	public static WorkoutSessionResponse from(WorkoutSession session) {
-		return new WorkoutSessionResponse(session.getId(), session.getWorkoutDate(), session.getRoutineId(),
+	public static WorkoutSessionResponse from(WorkoutSession session, String routineName) {
+		return new WorkoutSessionResponse(session.getId(), session.getWorkoutDate(), session.getRoutineId(), routineName,
 				session.getExercises().stream()
 						.sorted(Comparator.comparing(ExerciseInSession::getExerciseOrder))
 						.map(ExerciseResponse::from)

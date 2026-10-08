@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.workoutlog.backend.common.error.RequestValidationException;
 import com.workoutlog.backend.exercise.Exercise;
 import com.workoutlog.backend.exercise.ExerciseRepository;
+import com.workoutlog.backend.routine.Routine;
 import com.workoutlog.backend.routine.RoutineRepository;
 import com.workoutlog.backend.workout.dto.WorkoutSessionRequest;
 import com.workoutlog.backend.workout.dto.WorkoutSessionRequest.ExerciseRequest;
@@ -35,18 +36,22 @@ public class WorkoutSessionService {
 
 	@Transactional
 	public WorkoutSessionResponse createSession(WorkoutSessionRequest request, Integer userId) {
-		validateRoutine(request.routineId(), userId);
+		Routine routine = validateAndLoadRoutine(request.routineId(), userId);
 		Map<Integer, Exercise> exercises = validateAndLoadExercises(request.exercises(), userId);
 		WorkoutSession session = new WorkoutSession(userId, request.routineId(), request.workoutDate());
 		addExercises(session, request.exercises(), exercises);
-		return WorkoutSessionResponse.from(workoutSessionRepository.save(session));
+		return WorkoutSessionResponse.from(workoutSessionRepository.save(session),
+				routine == null ? null : routine.getName());
 	}
 
 	@Transactional(readOnly = true)
 	public List<WorkoutSessionResponse> getSessions(Integer userId, LocalDate from, LocalDate to) {
 		validateDateRange(from, to);
-		return workoutSessionRepository.findAllInDateRange(userId, from, to).stream()
-				.map(WorkoutSessionResponse::from)
+		List<WorkoutSession> sessions = workoutSessionRepository.findAllInDateRange(userId, from, to);
+		Map<Integer, String> routineNames = loadRoutineNames(sessions, userId);
+		return sessions.stream()
+				.map(session -> WorkoutSessionResponse.from(session,
+						session.getRoutineId() == null ? null : routineNames.get(session.getRoutineId())))
 				.toList();
 	}
 
@@ -58,19 +63,20 @@ public class WorkoutSessionService {
 
 	@Transactional(readOnly = true)
 	public WorkoutSessionResponse getSession(Integer sessionId, Integer userId) {
-		return WorkoutSessionResponse.from(findOwnedSession(sessionId, userId));
+		WorkoutSession session = findOwnedSession(sessionId, userId);
+		return WorkoutSessionResponse.from(session, routineName(session.getRoutineId(), userId));
 	}
 
 	@Transactional
 	public WorkoutSessionResponse updateSession(Integer sessionId, WorkoutSessionRequest request, Integer userId) {
 		WorkoutSession session = findOwnedSession(sessionId, userId);
-		validateRoutine(request.routineId(), userId);
+		Routine routine = validateAndLoadRoutine(request.routineId(), userId);
 		Map<Integer, Exercise> exercises = validateAndLoadExercises(request.exercises(), userId);
 		session.update(request.routineId(), request.workoutDate());
 		session.clearExercises();
 		workoutSessionRepository.flush();
 		addExercises(session, request.exercises(), exercises);
-		return WorkoutSessionResponse.from(session);
+		return WorkoutSessionResponse.from(session, routine == null ? null : routine.getName());
 	}
 
 	private WorkoutSession findOwnedSession(Integer sessionId, Integer userId) {
@@ -78,10 +84,30 @@ public class WorkoutSessionService {
 				.orElseThrow(WorkoutSessionNotFoundException::new);
 	}
 
-	private void validateRoutine(Integer routineId, Integer userId) {
-		if (routineId != null && routineRepository.findByIdAndUserId(routineId, userId).isEmpty()) {
-			throw new RequestValidationException("routineId", "사용할 수 없는 루틴입니다.");
+	private Routine validateAndLoadRoutine(Integer routineId, Integer userId) {
+		if (routineId == null) {
+			return null;
 		}
+		return routineRepository.findByIdAndUserId(routineId, userId)
+				.orElseThrow(() -> new RequestValidationException("routineId", "사용할 수 없는 루틴입니다."));
+	}
+
+	private String routineName(Integer routineId, Integer userId) {
+		return routineId == null ? null : routineRepository.findByIdAndUserId(routineId, userId)
+				.map(Routine::getName)
+				.orElse(null);
+	}
+
+	private Map<Integer, String> loadRoutineNames(List<WorkoutSession> sessions, Integer userId) {
+		HashSet<Integer> routineIds = sessions.stream()
+				.map(WorkoutSession::getRoutineId)
+				.filter(java.util.Objects::nonNull)
+				.collect(Collectors.toCollection(HashSet::new));
+		if (routineIds.isEmpty()) {
+			return Map.of();
+		}
+		return routineRepository.findAllByIdInAndUserId(routineIds, userId).stream()
+				.collect(Collectors.toMap(Routine::getId, Routine::getName));
 	}
 
 	private Map<Integer, Exercise> validateAndLoadExercises(List<ExerciseRequest> requests, Integer userId) {
