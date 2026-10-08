@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
+import com.workoutlog.backend.routine.RoutineNotFoundException;
+
 import jakarta.servlet.http.HttpServletRequest;
 
 @RestControllerAdvice
@@ -55,6 +57,11 @@ public class ApiExceptionHandler {
 	@ExceptionHandler(InvalidCredentialsException.class)
 	ProblemDetail handleInvalidCredentials(InvalidCredentialsException exception, HttpServletRequest request) {
 		return problem(HttpStatus.UNAUTHORIZED, exception.getMessage(), "INVALID_CREDENTIALS", request, null);
+	}
+
+	@ExceptionHandler(RoutineNotFoundException.class)
+	ProblemDetail handleRoutineNotFound(RoutineNotFoundException exception, HttpServletRequest request) {
+		return problem(HttpStatus.NOT_FOUND, exception.getMessage(), "ROUTINE_NOT_FOUND", request, null);
 	}
 
 	private ProblemDetail problem(HttpStatus status, String detail, String code, HttpServletRequest request,
