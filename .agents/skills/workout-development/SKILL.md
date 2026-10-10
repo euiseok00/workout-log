@@ -24,9 +24,17 @@ README의 MVP와 Core Domain은 방향을 제시하는 초기 설계다. 구현�
 - 프론트엔드: `frontend/`, React + Vite + JavaScript + ESLint
 - 백엔드: `backend/`, Java 21 + Spring Boot + Gradle
 - 프론트 검증: `npm run lint`, `npm run build` (`frontend/`에서 실행)
-- 백엔드 검증: Windows는 `gradlew.bat test`, 그 외 환경은 `./gradlew test` (`backend/`에서 실행)
+- 백엔드 검증: 환경변수 설정 없이 `./gradlew test` (`backend/`에서 실행, Windows PowerShell에서는 `.\gradlew.bat test`)
 
 실제 스크립트와 Gradle 구성을 먼저 읽는다. 위 명령이 프로젝트 변경으로 달라졌다면 현재 파일의 명령을 사용한다.
+
+## 백엔드 PostgreSQL 통합 테스트 정책
+
+- PostgreSQL 통합 테스트는 기존 `PostgresIntegrationTest`를 상속하고 Testcontainers + `@ServiceConnection` 구성을 재사용한다.
+- `./gradlew test`가 PostgreSQL 컨테이너를 자동 생성하고, 빈 컨테이너 DB에 Flyway `V1`부터 최신 migration까지 적용하며, 테스트 종료 후 컨테이너를 제거하는 현재 수명 주기를 유지한다.
+- 로컬 `workout_log_test` 데이터베이스나 `localhost:5432`의 별도 테스트 DB를 사용하지 않는다. 개발 DB `workout_log`는 테스트에서 절대 수정하지 않는다.
+- 테스트를 위해 `WORKOUT_DB_PASSWORD` 또는 `WORKOUT_JWT_SECRET`을 요구하거나 `SPRING_DATASOURCE_URL`을 로컬 DB 주소로 설정하지 않는다. JWT secret은 `test` profile의 테스트 전용 값만 사용한다.
+- 테스트용 PostgreSQL을 별도의 임시 `docker run` 명령으로 직접 실행하지 않는다. 정상적인 백엔드 전체 테스트는 추가 환경변수 없이 `backend/`에서 `./gradlew test`만으로 동작해야 한다.
 
 ## 역할과 최소 실행 방식
 

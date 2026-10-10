@@ -9,4 +9,5 @@
 ## Workout Log 개발 하네스
 
 기능 구현, 프론트엔드-백엔드 인터페이스, 데이터베이스 변경, 코드 리뷰, 테스트 및 검증 작업에는 `.agents/skills/workout-development/SKILL.md`를 읽는다.
+백엔드 PostgreSQL 통합 테스트는 기존 `PostgresIntegrationTest`의 Testcontainers + `@ServiceConnection` 구성을 재사용한다. 환경변수나 별도 `docker run`으로 로컬 테스트 DB를 연결하지 않으며, 개발 DB `workout_log`를 테스트에서 절대 수정하지 않는다. 전체 테스트는 환경변수 설정 없이 `backend/`에서 `./gradlew test`로 실행한다.
 <!-- codex-harness:domain:end -->
