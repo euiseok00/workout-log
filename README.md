@@ -49,3 +49,5 @@ Spring Boot와 React를 활용한 개인 헬스 루틴 및 운동 기록 웹 애
 - WorkoutSession
 - WorkoutExercise
 - WorkoutSet
+
+Deployment test.
