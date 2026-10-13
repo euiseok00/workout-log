@@ -2,6 +2,9 @@
 .harness/runs/
 _workspace/communications/
 
+# Local Docker Compose secrets
+.env
+
 # IntelliJ IDEA
 .idea/
 *.iml
