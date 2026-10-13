@@ -5,8 +5,6 @@ services:
       POSTGRES_DB: workout_log
       POSTGRES_USER: workout_app
       POSTGRES_PASSWORD: "${WORKOUT_DB_PASSWORD:?Set WORKOUT_DB_PASSWORD in .env}"
-    ports:
-      - "55432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
     healthcheck:
@@ -23,11 +21,17 @@ services:
       SPRING_DATASOURCE_USERNAME: workout_app
       SPRING_DATASOURCE_PASSWORD: "${WORKOUT_DB_PASSWORD:?Set WORKOUT_DB_PASSWORD in .env}"
       WORKOUT_JWT_SECRET: "${WORKOUT_JWT_SECRET:?Set WORKOUT_JWT_SECRET in .env}"
-    ports:
-      - "8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:
