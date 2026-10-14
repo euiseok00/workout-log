@@ -1,0 +1,140 @@
+:root[data-theme="apdo"] {
+  color-scheme: dark;
+  --ink: #eee9e1;
+  --muted: #a9a6a3;
+  --surface: #242528;
+  --background: #101113;
+  --line: #444348;
+  --accent: #a72c34;
+  --blue: #b9434b;
+  --shadow: 0 14px 36px #0007;
+  --raised: #303135;
+  --deep: #191a1d;
+  --ivory: #e8ded1;
+  color: var(--ink);
+  background: var(--background);
+}
+
+:root[data-theme="apdo"] body { background: var(--background); }
+:root[data-theme="apdo"] :is(button, a, input, select):focus-visible { outline-color: #cd5960; }
+
+/* Shell and shared controls */
+:root[data-theme="apdo"] .sidebar { background: #18191c; border-color: var(--line); box-shadow: 8px 0 32px #0004; }
+:root[data-theme="apdo"] .brand { color: var(--ivory); }
+:root[data-theme="apdo"] .brand-mark { background: #81232b; color: #fff4ed; border-radius: 10px; box-shadow: 0 8px 24px #811b2838; }
+:root[data-theme="apdo"] .nav-item { color: var(--muted); border-radius: 10px; }
+:root[data-theme="apdo"] .nav-item:hover { background: var(--raised); color: var(--ink); }
+:root[data-theme="apdo"] .nav-item.active { background: #3c252a; color: var(--ivory); box-shadow: inset 3px 0 #b73b44, 0 8px 22px #0005; }
+:root[data-theme="apdo"] .draft-dot { border-color: var(--deep); }
+:root[data-theme="apdo"] .sidebar-user { border-color: var(--line); }
+:root[data-theme="apdo"] .avatar { background: var(--raised); color: var(--ivory); border-radius: 9px; }
+:root[data-theme="apdo"] .eyebrow { color: #d15d64; }
+:root[data-theme="apdo"] :is(.page-header h1, .stat-card strong, .routine-card-meta b, .detail-summary b, .workout-progress b) { color: var(--ivory); }
+:root[data-theme="apdo"] :is(.icon-button, .secondary-button) { background: var(--raised); color: var(--ink); border-color: var(--line); box-shadow: none; }
+:root[data-theme="apdo"] :is(.icon-button, .secondary-button):hover { background: #3c3c41; border-color: #875157; }
+:root[data-theme="apdo"] .primary-button { background: #982832; color: #fff7f0; border-color: #b13a43; box-shadow: 0 9px 22px #530e183f; }
+:root[data-theme="apdo"] .primary-button:hover { background: #b53640; transform: scale(1.01); }
+:root[data-theme="apdo"] :is(.primary-button, .secondary-button):active { transform: translateY(1px); }
+:root[data-theme="apdo"] :is(.card, .stat-card, .session-card, .routine-card, .exercise-list-card, .detail-exercise) { border: 1px solid var(--line); border-radius: 16px; }
+:root[data-theme="apdo"] .error-message { background: #3b2227; color: #f0b5b8; border-color: #764047; }
+:root[data-theme="apdo"] .spinner { border-color: var(--line); border-top-color: #c04b54; }
+:root[data-theme="apdo"] .empty-icon { background: var(--raised); color: var(--ivory); }
+:root[data-theme="apdo"] :is(.count-badge, .today-chip, .save-status) { background: var(--raised); color: var(--ivory); border: 1px solid var(--line); }
+:root[data-theme="apdo"] .save-status i { background: #bd464f; }
+:root[data-theme="apdo"] .text-button { color: var(--ivory); }
+:root[data-theme="apdo"] .text-button.danger { color: #d87579; }
+:root[data-theme="apdo"] .character-message { background: var(--deep); color: var(--ivory); border: 1px solid #674047; }
+:root[data-theme="apdo"] .theme-selector { background: #26272a; color: var(--ivory); border-color: #644047; border-radius: 9px; }
+:root[data-theme="apdo"] .theme-selector select { color: var(--ivory); }
+:root[data-theme="apdo"] .theme-selector option { background: #26272a; color: var(--ivory); }
+
+/* Dashboard and calendar */
+:root[data-theme="apdo"] .stat-card { background: linear-gradient(150deg, #303034, #222326 74%); box-shadow: var(--shadow); }
+:root[data-theme="apdo"] .stat-card > span { color: #bcb3ab; }
+:root[data-theme="apdo"] .stat-card strong small { color: var(--muted); }
+:root[data-theme="apdo"] .stat-card i { background: #8e3039; opacity: .24; }
+:root[data-theme="apdo"] .stat-2 i { background: #745359; }
+:root[data-theme="apdo"] .stat-3 i { background: #8c7772; }
+:root[data-theme="apdo"] .stat-4 i { background: #65666a; }
+:root[data-theme="apdo"] .day-sessions { background: var(--deep); border: 1px solid var(--line); border-radius: 16px; }
+:root[data-theme="apdo"] .calendar-weekdays span { color: #aaa39d; }
+:root[data-theme="apdo"] .calendar-grid button { color: var(--ink); border-radius: 9px; }
+:root[data-theme="apdo"] .calendar-grid button:hover { background: var(--raised); }
+:root[data-theme="apdo"] .calendar-grid button.selected { background: #922a33; color: #fff7f0; box-shadow: 0 6px 18px #0007; }
+:root[data-theme="apdo"] .calendar-grid button.today:not(.selected) span { color: #df6970; }
+:root[data-theme="apdo"] .session-card { background: var(--surface); box-shadow: 0 6px 18px #0004; }
+:root[data-theme="apdo"] .session-card:hover { border-color: #a24149; background: var(--raised); }
+:root[data-theme="apdo"] .session-icon { background: #42272c; color: #db6870; border-radius: 10px; }
+
+/* Workout, routines, and sets */
+:root[data-theme="apdo"] :is(.start-option, .routine-select-card, .exercise-card, .routine-card, .routine-exercise-row, .exercise-list-card, .detail-exercise) { background: var(--surface); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow); }
+:root[data-theme="apdo"] :is(.start-option, .routine-select-card, .exercise-card, .routine-card, .routine-exercise-row) { border-radius: 16px; }
+:root[data-theme="apdo"] :is(.start-option, .routine-select-card, .routine-card, .exercise-list-card):hover { background: var(--raised); border-color: #a24149; box-shadow: 0 16px 34px #0009; }
+:root[data-theme="apdo"] .primary-option { background: linear-gradient(145deg, #392327, #252528); border-color: #754047; }
+:root[data-theme="apdo"] .primary-option:hover { background: linear-gradient(145deg, #4a292e, #303034); }
+:root[data-theme="apdo"] :is(.option-icon, .routine-symbol, .routine-number, .exercise-symbol, .detail-exercise header > span) { background: #43282d; color: #db7076; border-radius: 10px; }
+:root[data-theme="apdo"] .primary-option .option-icon { background: #9f3039; color: #fff4ed; }
+:root[data-theme="apdo"] :is(.routine-number.color-1, .routine-number.color-2, .routine-number.color-3) { background: #43282d; color: #db7076; }
+:root[data-theme="apdo"] .routine-tags span { background: var(--raised); color: var(--ivory); }
+:root[data-theme="apdo"] :is(.resume-card, .workout-progress, .detail-summary) { background: #272529; color: var(--ink); border: 1px solid #694047; border-radius: 16px; }
+:root[data-theme="apdo"] .resume-graphic { border-color: #a72c34; border-top-color: #494047; }
+:root[data-theme="apdo"] :is(.resume-graphic small, .resume-card p, .resume-card > div > span, .workout-progress span, .detail-summary span, .detail-summary small) { color: #c0b4ab; }
+:root[data-theme="apdo"] .progress-track { background: #4b3b3e; }
+:root[data-theme="apdo"] .progress-track i { background: #bf414a; }
+:root[data-theme="apdo"] .detail-summary > div { border-color: #654349; }
+:root[data-theme="apdo"] .exercise-card > header,
+:root[data-theme="apdo"] :is(.set-row, .record-card p, .history-list article, .detail-exercise > div > p) { border-color: var(--line); }
+:root[data-theme="apdo"] .set-head { color: #bcb1aa; }
+:root[data-theme="apdo"] .set-row.completed { background: #40272d; box-shadow: inset 3px 0 #ae3b45; }
+:root[data-theme="apdo"] .set-row.completed > b { color: #f0d9d5; }
+:root[data-theme="apdo"] .set-row label input,
+:root[data-theme="apdo"] .routine-exercise-row label input,
+:root[data-theme="apdo"] :is(.auth-form input, .large-input) { background: var(--deep); color: var(--ink); border-color: #555055; border-radius: 9px; }
+:root[data-theme="apdo"] :is(.set-row label input, .routine-exercise-row label input, .auth-form input, .large-input):focus { border-color: #bd4b54; box-shadow: 0 0 0 3px #ad394333; }
+:root[data-theme="apdo"] input::placeholder { color: #999296; }
+:root[data-theme="apdo"] .check-button { background: var(--deep); border-color: #78666b; border-radius: 8px; }
+:root[data-theme="apdo"] .check-button.checked { background: #a72c34; border-color: #c44b54; color: #fff4ed; }
+:root[data-theme="apdo"] :is(.history-button, .card-actions button:hover, .row-actions button:hover) { background: var(--raised); color: var(--ivory); }
+:root[data-theme="apdo"] .history-button:hover { background: #4b3035; }
+:root[data-theme="apdo"] :is(.drag-handle, .remove-set) { color: var(--muted); }
+:root[data-theme="apdo"] :is(.add-row-button, .add-exercise-button) { background: var(--deep); color: var(--ivory); border-color: #6c5459; }
+:root[data-theme="apdo"] :is(.add-row-button, .add-exercise-button):hover { background: #39292d; border-color: #a24149; }
+:root[data-theme="apdo"] .sticky-save { background: #252427f2; border: 1px solid #75474e; border-radius: 13px; }
+:root[data-theme="apdo"] .record-card { background: var(--deep); border-color: var(--line); }
+:root[data-theme="apdo"] :is(.routine-select-card footer, .routine-card-meta) { border-color: var(--line); }
+:root[data-theme="apdo"] .exercise-toolbar { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+:root[data-theme="apdo"] .exercise-list-card p i { background: #b94a53; }
+:root[data-theme="apdo"] :is(.body-back, .body-chest, .body-shoulders, .body-arms, .body-legs) { background: #43282d; color: #df777d; }
+:root[data-theme="apdo"] .detail-exercise > div > p.completed i { background: #4b2b31; color: #e77d83; }
+
+/* Modal, picker, and authentication */
+:root[data-theme="apdo"] .modal-backdrop { background: #080709c9; }
+:root[data-theme="apdo"] .modal-sheet { background: var(--surface); border: 1px solid #664148; border-radius: 18px; }
+:root[data-theme="apdo"] .modal-handle { background: #796a6d; }
+:root[data-theme="apdo"] .search-field { background: var(--deep); border-color: var(--line); border-radius: 10px; }
+:root[data-theme="apdo"] .search-field input { color: var(--ink); background: transparent; }
+:root[data-theme="apdo"] .chip { background: var(--raised); border-color: var(--line); color: var(--ivory); }
+:root[data-theme="apdo"] .chip.active { background: #49282f; border-color: #b9444e; color: #f0bec0; }
+:root[data-theme="apdo"] .picker-item { background: var(--deep); color: var(--ink); border-radius: 10px; }
+:root[data-theme="apdo"] .picker-item:hover { background: var(--raised); }
+:root[data-theme="apdo"] .auth-page { background: var(--background); }
+:root[data-theme="apdo"] .auth-visual { background: #19191d; }
+:root[data-theme="apdo"] .auth-visual:before { border-color: #8f293329; }
+:root[data-theme="apdo"] .auth-visual:after { background: #8f29331f; }
+:root[data-theme="apdo"] :is(.auth-visual-copy p, .auth-form .form-description) { color: var(--muted); }
+:root[data-theme="apdo"] .auth-kicker { color: #dd7279; }
+:root[data-theme="apdo"] .art-ring { border-left-color: #43373b; }
+:root[data-theme="apdo"] .art-ring span { color: var(--ivory); }
+:root[data-theme="apdo"] .art-pill { background: #9c343522; border-color: #ad4c553d; }
+:root[data-theme="apdo"] .auth-form-wrap { background: var(--background); }
+:root[data-theme="apdo"] :is(.field-button, .password-field button) { background: var(--raised); color: var(--ink); }
+:root[data-theme="apdo"] .field-help.success { color: #bdc9ba; }
+:root[data-theme="apdo"] .field-help.danger { color: #df8187; }
+
+@media (max-width: 760px) {
+  :root[data-theme="apdo"] .bottom-nav { background: #202124f5; border-color: #604047; border-radius: 16px; }
+  :root[data-theme="apdo"] .bottom-nav-item { color: var(--muted); border-radius: 11px; }
+  :root[data-theme="apdo"] .bottom-nav-item.active { background: #51292f; color: var(--ivory); }
+  :root[data-theme="apdo"] .form-actions { background: #101113e6; }
+  :root[data-theme="apdo"] .modal-sheet { border-radius: 18px 18px 0 0; }
+}

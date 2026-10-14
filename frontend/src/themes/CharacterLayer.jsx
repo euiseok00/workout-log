@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import allright from './allright/theme'
+import { themes } from './index'
 import { useCharacterEvent } from './characterEventContext'
 import { useTheme } from './themeContext'
 import './CharacterLayer.css'
@@ -14,11 +14,12 @@ export default function CharacterLayer() {
     return () => window.clearTimeout(timer)
   }, [activeEvent, clearCharacter])
 
-  if (currentTheme !== allright.id || !activeEvent) return null
+  if (!activeEvent) return null
 
-  const image = allright.images[activeEvent.type]
+  const theme = themes[currentTheme]
+  const image = theme.images?.[activeEvent.type]
   if (!image) return null
-  const line = allright.messages[activeEvent.type]
+  const line = theme.messages[activeEvent.type]
   const message = Array.isArray(line) ? line[(activeEvent.id - 1) % line.length] : line
 
   return (

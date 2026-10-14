@@ -1,0 +1,17 @@
+import { CHARACTER_EVENTS } from '../characterEvents'
+
+export default {
+  [CHARACTER_EVENTS.DASHBOARD_ENTER]: '낮은 자세로 묵묵하게 가는 기다.',
+  [CHARACTER_EVENTS.WORKOUT_ENTER]: '가보입시더.',
+  [CHARACTER_EVENTS.ROUTINE_START]: '준비됐제.',
+  [CHARACTER_EVENTS.ROUTINE_SELECT]: '이걸로 가입시더.',
+  [CHARACTER_EVENTS.FREE_WORKOUT_START]: '시작해봅시더.',
+  [CHARACTER_EVENTS.EXERCISE_ADD]: '좋다.',
+  [CHARACTER_EVENTS.SET_COMPLETE]: ['좋다.', '계속 가자.', '더 할 수 있다 아이가.'],
+  [CHARACTER_EVENTS.SET_ADD]: '한 세트 더 가자.',
+  [CHARACTER_EVENTS.RECORD_CHECK]: null,
+  [CHARACTER_EVENTS.RECORD_LOAD]: '여서부터 다시 가자.',
+  [CHARACTER_EVENTS.WORKOUT_SAVE_SUCCESS]: '압도 아이가.',
+  [CHARACTER_EVENTS.WORKOUT_SAVE_ERROR]: '바닥에서 기어 올라오는 거는 내 전문이다.',
+  [CHARACTER_EVENTS.WORKOUT_RECORD_OPEN]: null,
+}

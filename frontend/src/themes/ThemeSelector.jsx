@@ -10,6 +10,7 @@ export default function ThemeSelector() {
       <select value={currentTheme} onChange={(event) => setTheme(event.target.value)}>
         <option value="default">기본</option>
         <option value="allright">박재훈</option>
+        <option value="apdo">김건우</option>
       </select>
     </label>
   )

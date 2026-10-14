@@ -1,17 +1,16 @@
 import { useLayoutEffect, useState } from 'react'
-import allright from './allright/theme'
 import './allright/allright-theme.css'
-import defaultTheme from './default/theme'
+import './apdo/apdo-theme.css'
+import { themes } from './index'
 import { ThemeContext } from './themeContext'
 
 const STORAGE_KEY = 'workout_theme'
-const themes = { [defaultTheme.id]: defaultTheme, [allright.id]: allright }
-const validTheme = (id) => Object.hasOwn(themes, id) ? id : defaultTheme.id
+const validTheme = (id) => Object.hasOwn(themes, id) ? id : 'default'
 
 export default function ThemeProvider({ children }) {
   const [currentTheme, setCurrentTheme] = useState(() => {
     const stored = localStorage.getItem(STORAGE_KEY)
-    return stored === null && import.meta.env.DEV ? allright.id : validTheme(stored)
+    return stored === null && import.meta.env.DEV ? 'allright' : validTheme(stored)
   })
 
   useLayoutEffect(() => {
