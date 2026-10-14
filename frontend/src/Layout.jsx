@@ -1,4 +1,6 @@
 import { clearAuth } from './api'
+import { useCharacterEvent } from './themes/characterEventContext'
+import { CHARACTER_EVENTS } from './themes/characterEvents'
 import { Icon, Link } from './ui'
 
 const NAV_ITEMS = [
@@ -9,8 +11,10 @@ const NAV_ITEMS = [
 ]
 
 export default function Layout({ path, navigate, auth, onLogout, children }) {
+  const { triggerCharacter } = useCharacterEvent()
   const draftKey = `workout_draft:${auth.user.id}`
   const hasDraft = Boolean(localStorage.getItem(draftKey))
+  const openWorkout = (to) => { triggerCharacter(CHARACTER_EVENTS.WORKOUT_ENTER); navigate(to) }
   const logout = () => {
     clearAuth()
     onLogout()
@@ -27,7 +31,7 @@ export default function Layout({ path, navigate, auth, onLogout, children }) {
         <nav className="side-nav" aria-label="주요 메뉴">
           {NAV_ITEMS.map(([to, icon, label]) => {
             const active = path === to || (to !== '/dashboard' && path.startsWith(`${to}/`))
-            return <Link key={to} to={to} navigate={navigate} className={`nav-item ${active ? 'active' : ''}`}><span className="nav-icon"><Icon name={icon}/>{to === '/workout' && hasDraft && <i className="draft-dot"/>}</span>{label}</Link>
+            return <Link key={to} to={to} navigate={to === '/workout' ? openWorkout : navigate} className={`nav-item ${active ? 'active' : ''}`}><span className="nav-icon"><Icon name={icon}/>{to === '/workout' && hasDraft && <i className="draft-dot"/>}</span>{label}</Link>
           })}
         </nav>
         <div className="sidebar-user"><span className="avatar"><Icon name="user" size={18}/></span><div><b>{auth.user.loginId}</b><small>내 운동 기록</small></div><button onClick={logout} className="icon-button" aria-label="로그아웃"><Icon name="logout" size={20}/></button></div>
@@ -38,7 +42,7 @@ export default function Layout({ path, navigate, auth, onLogout, children }) {
       <nav className="bottom-nav" aria-label="주요 메뉴">
         {NAV_ITEMS.map(([to, icon, label]) => {
           const active = path === to || (to !== '/dashboard' && path.startsWith(`${to}/`))
-          return <Link key={to} to={to} navigate={navigate} className={`bottom-nav-item ${active ? 'active' : ''}`}><span className="nav-icon"><Icon name={icon}/>{to === '/workout' && hasDraft && <i className="draft-dot"/>}</span><small>{label}</small></Link>
+          return <Link key={to} to={to} navigate={to === '/workout' ? openWorkout : navigate} className={`bottom-nav-item ${active ? 'active' : ''}`}><span className="nav-icon"><Icon name={icon}/>{to === '/workout' && hasDraft && <i className="draft-dot"/>}</span><small>{label}</small></Link>
         })}
       </nav>
     </div>

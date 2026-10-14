@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { api, query } from './api'
+import { useCharacterEvent } from './themes/characterEventContext'
+import { CHARACTER_EVENTS } from './themes/characterEvents'
 import { EmptyState, ErrorMessage, Icon, Link, Loading, PageHeader } from './ui'
 import { formatDate, formatNumber, todayString } from './utils'
 
@@ -8,6 +10,8 @@ function isoDate(year, month, day) {
 }
 
 export default function Dashboard({ navigate, auth }) {
+  const { triggerCharacter } = useCharacterEvent()
+  const entered = useRef(false)
   const today = new Date(`${todayString()}T00:00:00`)
   const [cursor, setCursor] = useState(new Date(today.getFullYear(), today.getMonth(), 1))
   const [selected, setSelected] = useState(todayString())
@@ -20,6 +24,17 @@ export default function Dashboard({ navigate, auth }) {
   const lastDate = new Date(year, month + 1, 0).getDate()
   const from = isoDate(year, month, 1)
   const to = isoDate(year, month, lastDate)
+
+  useEffect(() => {
+    if (entered.current) return
+    entered.current = true
+    triggerCharacter(CHARACTER_EVENTS.DASHBOARD_ENTER)
+  }, [triggerCharacter])
+
+  const openRecord = (to) => {
+    triggerCharacter(CHARACTER_EVENTS.WORKOUT_RECORD_OPEN)
+    navigate(to)
+  }
 
   useEffect(() => {
     let active = true
@@ -71,7 +86,7 @@ export default function Dashboard({ navigate, auth }) {
             <header className="section-header"><div><p className="eyebrow">DAILY LOG</p><h2>{formatDate(selected)}</h2></div><span className="count-badge">{selectedSessions.length}개</span></header>
             <div className="session-list">{selectedSessions.length ? selectedSessions.map((session) => {
               const completed = session.exercises.flatMap((exercise) => exercise.sets).filter((set) => set.completed).length
-              return <Link to={`/workouts/${session.id}`} navigate={navigate} className="session-card" key={session.id}><span className="session-icon"><Icon name="workout"/></span><div><h3>{session.routineName || '자유 운동'}</h3><p>운동 {session.exercises.length}개 · 완료 {completed}세트</p></div><Icon name="chevron"/></Link>
+              return <Link to={`/workouts/${session.id}`} navigate={openRecord} className="session-card" key={session.id}><span className="session-icon"><Icon name="workout"/></span><div><h3>{session.routineName || '자유 운동'}</h3><p>운동 {session.exercises.length}개 · 완료 {completed}세트</p></div><Icon name="chevron"/></Link>
             }) : <EmptyState icon="calendar" title="이날 기록된 운동이 없어요" description="가볍게 오늘의 운동을 시작해보세요." action={<Link to="/workout" navigate={navigate} className="secondary-button">운동 시작</Link>}/>}</div>
           </section>
         </div>

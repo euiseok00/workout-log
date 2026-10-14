@@ -8,3 +8,6 @@ _workspace/communications/
 # IntelliJ IDEA
 .idea/
 *.iml
+
+__pycache__/
+*.pyc
