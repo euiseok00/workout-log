@@ -21,8 +21,8 @@ export default function App() {
     return () => { window.removeEventListener('popstate', onPopState); window.removeEventListener('auth-expired', onExpired) }
   }, [])
 
-  const navigate = useCallback((to, replace = false) => {
-    window.history[replace ? 'replaceState' : 'pushState']({}, '', to)
+  const navigate = useCallback((to, replace = false, state = {}) => {
+    window.history[replace ? 'replaceState' : 'pushState'](state, '', to)
     setPath(to)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [])
@@ -33,11 +33,13 @@ export default function App() {
   const route = publicRoute || path === '/' ? '/dashboard' : path
   let page
   const workoutMatch = route.match(/^\/workouts\/(\d+)$/)
+  const workoutEditMatch = route.match(/^\/workouts\/(\d+)\/edit$/)
   const routineMatch = route.match(/^\/routines\/(\d+)$/)
   const exerciseMatch = route.match(/^\/exercises\/(\d+)\/history$/)
 
   if (route === '/dashboard') page = <Dashboard navigate={navigate} auth={auth}/>
   else if (route === '/workout') page = <Workout navigate={navigate} auth={auth}/>
+  else if (workoutEditMatch) page = <Workout key={workoutEditMatch[1]} sessionId={workoutEditMatch[1]} navigate={navigate} auth={auth}/>
   else if (workoutMatch) page = <WorkoutDetail id={workoutMatch[1]} navigate={navigate} auth={auth}/>
   else if (route === '/routines') page = <RoutineList navigate={navigate}/>
   else if (route === '/routines/new') page = <RoutineForm navigate={navigate}/>

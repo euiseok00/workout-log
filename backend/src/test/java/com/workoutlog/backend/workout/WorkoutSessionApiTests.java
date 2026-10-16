@@ -1,8 +1,10 @@
 package com.workoutlog.backend.workout;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -154,6 +156,34 @@ class WorkoutSessionApiTests extends PostgresIntegrationTest {
 				.andExpect(jsonPath("$.exercises[1].sets[0].setNumber").value(1))
 				.andExpect(jsonPath("$.exercises[1].sets[1].setNumber").value(2))
 				.andExpect(jsonPath("$.exercises[?(@.exerciseId == %d)]".formatted(benchPressId)).isEmpty());
+
+		mockMvc.perform(get("/api/workout-sessions/{sessionId}", sessionId).with(jwtFor(user)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.id").value(sessionId))
+				.andExpect(jsonPath("$.exercises[0].sets").isEmpty())
+				.andExpect(jsonPath("$.exercises[1].sets[0].weight").value(10.0))
+				.andExpect(jsonPath("$.exercises[1].sets[0].reps").value(10))
+				.andExpect(jsonPath("$.exercises[1].sets[0].completed").value(false))
+				.andExpect(jsonPath("$.exercises[1].sets[1].weight").value(12.5))
+				.andExpect(jsonPath("$.exercises[1].sets[1].reps").value(8))
+				.andExpect(jsonPath("$.exercises[1].sets[1].completed").value(true));
+	}
+
+	@Test
+	void deletesWorkoutAndItsExercisesAndSets() throws Exception {
+		User user = saveUser("session_delete");
+		Integer exerciseId = defaultExerciseId("스쿼트");
+		Integer sessionId = createSession(user, LocalDate.now(), null, singleExercise(exerciseId));
+
+		mockMvc.perform(delete("/api/workout-sessions/{sessionId}", sessionId).with(jwtFor(user)))
+				.andExpect(status().isNoContent());
+
+		assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM workout_session WHERE id = ?", Integer.class, sessionId)).isZero();
+		assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM exercise_in_session WHERE session_id = ?", Integer.class, sessionId)).isZero();
+		assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM exercise_set", Integer.class)).isZero();
+		mockMvc.perform(get("/api/workout-sessions").with(jwtFor(user)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.length()").value(0));
 	}
 
 	@Test
@@ -173,6 +203,13 @@ class WorkoutSessionApiTests extends PostgresIntegrationTest {
 				.content(sessionBody(LocalDate.now(), null, singleExercise(exerciseId))))
 				.andExpect(status().isNotFound())
 				.andExpect(jsonPath("$.code").value("WORKOUT_SESSION_NOT_FOUND"));
+
+		mockMvc.perform(delete("/api/workout-sessions/{sessionId}", sessionId).with(jwtFor(otherUser)))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.code").value("WORKOUT_SESSION_NOT_FOUND"));
+
+		mockMvc.perform(get("/api/workout-sessions/{sessionId}", sessionId).with(jwtFor(owner)))
+				.andExpect(status().isOk());
 	}
 
 	@Test

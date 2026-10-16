@@ -5,6 +5,7 @@ import { useCharacterEvent } from './themes/characterEventContext'
 import { CHARACTER_EVENTS } from './themes/characterEvents'
 import { EmptyState, ErrorMessage, Icon, Loading, Modal, PageHeader } from './ui'
 import { bodyPartLabel, formatDate, todayString } from './utils'
+import { workoutRequest } from './workoutSession'
 
 function readDraft(key) {
   try { return JSON.parse(localStorage.getItem(key)) } catch { return null }
@@ -28,12 +29,12 @@ function PreviousRecords({ exercise, onLoad, onClose }) {
   </Modal>
 }
 
-export default function Workout({ navigate, auth }) {
+export default function Workout({ navigate, auth, sessionId }) {
   const { triggerCharacter } = useCharacterEvent()
   const draftKey = `workout_draft:${auth.user.id}`
-  const initialDraft = useMemo(() => readDraft(draftKey), [draftKey])
+  const initialDraft = useMemo(() => sessionId ? null : readDraft(draftKey), [draftKey, sessionId])
   const [draft, setDraft] = useState(initialDraft)
-  const [view, setView] = useState(initialDraft ? 'resume' : 'hub')
+  const [view, setView] = useState(sessionId ? 'editor' : initialDraft ? 'resume' : 'hub')
   const [routines, setRoutines] = useState(null)
   const [exercises, setExercises] = useState(null)
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -45,15 +46,15 @@ export default function Workout({ navigate, auth }) {
 
   useEffect(() => {
     let active = true
-    Promise.all([api('/api/routines'), api('/api/exercises')]).then(([routineData, exerciseData]) => {
-      if (active) { setRoutines(routineData); setExercises(exerciseData) }
+    Promise.all([api('/api/routines'), api('/api/exercises'), sessionId ? api(`/api/workout-sessions/${sessionId}`) : null]).then(([routineData, exerciseData, sessionData]) => {
+      if (active) { setRoutines(routineData); setExercises(exerciseData); if (sessionData) setDraft(sessionData) }
     }).catch((requestError) => active && setError(requestError))
     return () => { active = false }
-  }, [])
+  }, [sessionId])
 
   useEffect(() => {
-    if (draft) localStorage.setItem(draftKey, JSON.stringify(draft))
-  }, [draft, draftKey])
+    if (draft && !sessionId) localStorage.setItem(draftKey, JSON.stringify(draft))
+  }, [draft, draftKey, sessionId])
 
   const updateDraft = (updater) => setDraft((current) => normalizeDraft(typeof updater === 'function' ? updater(current) : updater))
   const startFree = () => {
@@ -79,7 +80,7 @@ export default function Workout({ navigate, auth }) {
     if (to < 0 || to >= draft.exercises.length || from === to) return
     updateDraft((current) => { const items = [...current.exercises]; const [item] = items.splice(from, 1); items.splice(to, 0, item); return { ...current, exercises: items } })
   }
-  const changeSet = (exerciseIndex, setIndex, field, value) => updateDraft((current) => ({ ...current, exercises: current.exercises.map((exercise, currentExerciseIndex) => currentExerciseIndex === exerciseIndex ? { ...exercise, sets: exercise.sets.map((set, currentSetIndex) => currentSetIndex === setIndex ? { ...set, [field]: field === 'completed' ? value : Number(value) } : set) } : exercise) }))
+  const changeSet = (exerciseIndex, setIndex, field, value) => updateDraft((current) => ({ ...current, exercises: current.exercises.map((exercise, currentExerciseIndex) => currentExerciseIndex === exerciseIndex ? { ...exercise, sets: exercise.sets.map((set, currentSetIndex) => currentSetIndex === setIndex ? { ...set, [field]: field === 'completed' || value === '' ? value : Number(value) } : set) } : exercise) }))
   const addSet = (exerciseIndex) => { updateDraft((current) => ({ ...current, exercises: current.exercises.map((exercise, index) => index === exerciseIndex ? { ...exercise, sets: [...exercise.sets, { setNumber: exercise.sets.length + 1, weight: 0, reps: 0, completed: false }] } : exercise) })); triggerCharacter(CHARACTER_EVENTS.SET_ADD) }
   const removeSet = (exerciseIndex, setIndex) => updateDraft((current) => ({ ...current, exercises: current.exercises.map((exercise, index) => index === exerciseIndex ? { ...exercise, sets: exercise.sets.filter((_, currentSetIndex) => currentSetIndex !== setIndex) } : exercise) }))
   const loadPrevious = (sets) => {
@@ -93,15 +94,15 @@ export default function Workout({ navigate, auth }) {
     if (!draft.exercises.length) { setError(new Error('운동 종목을 하나 이상 추가해 주세요.')); triggerCharacter(CHARACTER_EVENTS.WORKOUT_SAVE_ERROR); return }
     setSaving(true)
     try {
-      await api('/api/workout-sessions', { method: 'POST', body: { workoutDate: draft.workoutDate, routineId: draft.routineId, exercises: draft.exercises.map((exercise, index) => ({ exerciseId: exercise.exerciseId, exerciseOrder: index + 1, sets: exercise.sets.map((set, setIndex) => ({ setNumber: setIndex + 1, weight: Number(set.weight), reps: Number(set.reps), completed: Boolean(set.completed) })) })) } })
-      localStorage.removeItem(draftKey)
+      await api(sessionId ? `/api/workout-sessions/${sessionId}` : '/api/workout-sessions', { method: sessionId ? 'PUT' : 'POST', body: workoutRequest(draft) })
+      if (!sessionId) localStorage.removeItem(draftKey)
       triggerCharacter(CHARACTER_EVENTS.WORKOUT_SAVE_SUCCESS)
-      await new Promise((resolve) => window.setTimeout(resolve, 1200))
-      setDraft(null); navigate('/dashboard')
+      if (!sessionId) await new Promise((resolve) => window.setTimeout(resolve, 1200))
+      setDraft(null); navigate(sessionId ? `/workouts/${sessionId}` : '/dashboard')
     } catch (requestError) { setError(requestError); setSaveFailed(true); triggerCharacter(CHARACTER_EVENTS.WORKOUT_SAVE_ERROR) } finally { setSaving(false) }
   }
 
-  if (!routines || !exercises) return <div className="page"><PageHeader title="운동 시작"/><ErrorMessage error={error}/><Loading/></div>
+  if (!routines || !exercises || !draft && sessionId) return <div className="page"><PageHeader back={sessionId ? `/workouts/${sessionId}` : null} navigate={navigate} title={sessionId ? '기록 수정' : '운동 시작'}/><ErrorMessage error={error}/>{!error && <Loading/>}</div>
 
   if (view === 'resume' && draft) {
     const allSets = draft.exercises.flatMap((exercise) => exercise.sets)
@@ -115,17 +116,17 @@ export default function Workout({ navigate, auth }) {
   const completed = draft.exercises.flatMap((exercise) => exercise.sets).filter((set) => set.completed).length
   const totalSets = draft.exercises.flatMap((exercise) => exercise.sets).length
   return <div className="page workout-editor-page">
-    <PageHeader eyebrow={formatDate(draft.workoutDate)} title={draft.routineName || '자유 운동'} action={<span className="save-status"><i/> 임시 저장됨</span>}/>
+    <PageHeader back={sessionId ? `/workouts/${sessionId}` : null} navigate={navigate} eyebrow={formatDate(draft.workoutDate)} title={draft.routineName || '자유 운동'} action={<span className="save-status"><i/> {sessionId ? '기록 수정 중' : '임시 저장됨'}</span>}/>
     <div className="workout-progress"><div><b>{completed}</b><span> / {totalSets} 세트 완료</span></div><div className="progress-track"><i style={{ width: `${totalSets ? completed / totalSets * 100 : 0}%` }}/></div></div>
     <ErrorMessage error={error}/>
     <div className="exercise-cards">{draft.exercises.map((exercise, exerciseIndex) => <article className="exercise-card" key={exercise.exerciseId} onDragOver={(event) => event.preventDefault()} onDrop={() => { moveExercise(dragIndex, exerciseIndex); setDragIndex(null) }}>
       <header><span className="drag-handle" title="드래그하여 순서 변경" draggable onDragStart={() => setDragIndex(exerciseIndex)}><Icon name="drag"/></span><div><h2>{exercise.name}</h2><p>{bodyPartLabel(exercise.bodyPart)}</p></div><button className="history-button" onClick={() => { setHistoryExercise(exercise); triggerCharacter(CHARACTER_EVENTS.RECORD_CHECK) }}><Icon name="history" size={17}/> 이전 기록</button><div className="card-actions"><button onClick={() => moveExercise(exerciseIndex, exerciseIndex - 1)} disabled={exerciseIndex === 0} aria-label="위로 이동">↑</button><button onClick={() => moveExercise(exerciseIndex, exerciseIndex + 1)} disabled={exerciseIndex === draft.exercises.length - 1} aria-label="아래로 이동">↓</button><button onClick={() => removeExercise(exerciseIndex)} aria-label="운동 삭제"><Icon name="close" size={17}/></button></div></header>
-      <div className="set-table"><div className="set-head"><span>세트</span><span>중량</span><span>횟수</span><span>완료</span><span/></div>{exercise.sets.map((set, setIndex) => <div className={`set-row ${set.completed ? 'completed' : ''}`} key={setIndex}><b>{setIndex + 1}</b><label><input type="number" min="0" max="9999.99" step="0.01" value={set.weight} onChange={(event) => changeSet(exerciseIndex, setIndex, 'weight', event.target.value)}/><span>kg</span></label><label><input type="number" min="0" step="1" value={set.reps} onChange={(event) => changeSet(exerciseIndex, setIndex, 'reps', event.target.value)}/><span>회</span></label><button className={`check-button ${set.completed ? 'checked' : ''}`} onClick={() => { changeSet(exerciseIndex, setIndex, 'completed', !set.completed); if (!set.completed) triggerCharacter(CHARACTER_EVENTS.SET_COMPLETE) }} aria-label={`${setIndex + 1}세트 완료`}><Icon name="check" size={17}/></button><button className="remove-set" onClick={() => removeSet(exerciseIndex, setIndex)} aria-label={`${setIndex + 1}세트 삭제`}><Icon name="close" size={15}/></button></div>)}</div>
+      <div className="set-table"><div className="set-head"><span>세트</span><span>중량</span><span>횟수</span><span>완료</span><span/></div>{exercise.sets.map((set, setIndex) => <div className={`set-row ${set.completed ? 'completed' : ''}`} key={setIndex}><b>{setIndex + 1}</b><label><input type="number" min="0" max="9999.99" step="0.01" value={set.weight} onFocus={() => { if (Number(set.weight) === 0) changeSet(exerciseIndex, setIndex, 'weight', '') }} onBlur={() => { if (set.weight === '') changeSet(exerciseIndex, setIndex, 'weight', 0) }} onChange={(event) => changeSet(exerciseIndex, setIndex, 'weight', event.target.value)}/><span>kg</span></label><label><input type="number" min="0" step="1" value={set.reps} onFocus={() => { if (Number(set.reps) === 0) changeSet(exerciseIndex, setIndex, 'reps', '') }} onBlur={() => { if (set.reps === '') changeSet(exerciseIndex, setIndex, 'reps', 0) }} onChange={(event) => changeSet(exerciseIndex, setIndex, 'reps', event.target.value)}/><span>회</span></label><button className={`check-button ${set.completed ? 'checked' : ''}`} onClick={() => { changeSet(exerciseIndex, setIndex, 'completed', !set.completed); if (!set.completed) triggerCharacter(CHARACTER_EVENTS.SET_COMPLETE) }} aria-label={`${setIndex + 1}세트 완료`}><Icon name="check" size={17}/></button><button className="remove-set" onClick={() => removeSet(exerciseIndex, setIndex)} aria-label={`${setIndex + 1}세트 삭제`}><Icon name="close" size={15}/></button></div>)}</div>
       <button className="add-row-button" onClick={() => addSet(exerciseIndex)}><Icon name="plus" size={17}/> 세트 추가</button>
     </article>)}</div>
     {!draft.exercises.length && <EmptyState title="운동 종목을 추가해 주세요" description="종목을 추가하면 세트 기록을 바로 시작할 수 있어요."/>}
     <button className="add-exercise-button" onClick={() => setPickerOpen(true)}><Icon name="plus"/> 운동 종목 추가</button>
-    <div className="sticky-save"><div><span>{draft.exercises.length}개 운동</span><b>{completed}/{totalSets}세트 완료</b></div><button className="primary-button" onClick={save} disabled={saving}>{saving ? '저장 중...' : saveFailed ? '다시 시도' : '운동 저장'}</button></div>
+    <div className="sticky-save"><div><span>{draft.exercises.length}개 운동</span><b>{completed}/{totalSets}세트 완료</b></div><button className="primary-button" onClick={save} disabled={saving}>{saving ? '저장 중...' : saveFailed ? '다시 시도' : sessionId ? '수정 저장' : '운동 저장'}</button></div>
     {pickerOpen && <ExercisePicker exercises={exercises} excluded={draft.exercises.map((exercise) => exercise.exerciseId)} onSelect={addExercise} onClose={() => setPickerOpen(false)}/>} 
     {historyExercise && <PreviousRecords exercise={historyExercise} onLoad={loadPrevious} onClose={() => setHistoryExercise(null)}/>} 
   </div>

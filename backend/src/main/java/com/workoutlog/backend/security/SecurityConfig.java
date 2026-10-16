@@ -87,7 +87,7 @@ public class SecurityConfig {
 			@Value("${app.cors.allowed-origin}") String allowedOrigin) {
 		CorsConfiguration configuration = new CorsConfiguration();
 		configuration.setAllowedOrigins(List.of(allowedOrigin));
-		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "OPTIONS"));
+		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 		configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
 
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

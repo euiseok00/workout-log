@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { api, saveAuth } from './api'
 import { ErrorMessage, Icon, Link } from './ui'
 
@@ -8,18 +8,20 @@ export default function AuthPage({ mode, navigate, onAuth }) {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [availability, setAvailability] = useState(null)
+  const loginIdRevision = useRef(0)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
 
   const checkAvailability = async () => {
     setError(null)
+    const revision = loginIdRevision.current
     if (!/^[a-z0-9_]{4,20}$/.test(loginId)) {
       setAvailability({ available: false, message: '4~20자의 영문 소문자, 숫자, 밑줄을 입력하세요.' })
       return
     }
     try {
       const result = await api(`/api/auth/login-id/availability?loginId=${encodeURIComponent(loginId)}`)
-      setAvailability({ ...result, message: result.available ? '사용 가능한 아이디입니다.' : '이미 사용 중인 아이디입니다.' })
+      if (revision === loginIdRevision.current) setAvailability({ ...result, message: result.available ? '사용 가능한 아이디입니다.' : '이미 사용 중인 아이디입니다.' })
     } catch (requestError) {
       setError(requestError)
     }
@@ -27,6 +29,7 @@ export default function AuthPage({ mode, navigate, onAuth }) {
 
   const submit = async (event) => {
     event.preventDefault()
+    if (signup && !(availability?.available === true && availability.loginId === loginId)) return
     setError(null)
     setLoading(true)
     try {
@@ -56,11 +59,11 @@ export default function AuthPage({ mode, navigate, onAuth }) {
           <p className="form-description">{signup ? '운동 기록을 시작할 계정을 만들어보세요.' : '내 운동 기록을 이어서 관리하세요.'}</p>
           <ErrorMessage error={error}/>
           <label className="field-label">아이디</label>
-          <div className="field-with-action"><input value={loginId} onChange={(e) => { setLoginId(e.target.value); setAvailability(null) }} placeholder="아이디를 입력하세요" autoComplete="username" required pattern="[a-z0-9_]{4,20}"/>{signup && <button type="button" className="field-button" onClick={checkAvailability}>중복 확인</button>}</div>
+          <div className="field-with-action"><input value={loginId} onChange={(e) => { loginIdRevision.current++; setLoginId(e.target.value); setAvailability(null) }} placeholder="아이디를 입력하세요" autoComplete="username" required pattern="[a-z0-9_]{4,20}"/>{signup && <button type="button" className="field-button" onClick={checkAvailability}>중복 확인</button>}</div>
           {signup && availability && <p className={`field-help ${availability.available ? 'success' : 'danger'}`}>{availability.message}</p>}
           <label className="field-label">비밀번호</label>
           <div className="password-field"><input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="8자 이상 입력하세요" autoComplete={signup ? 'new-password' : 'current-password'} required minLength="8" maxLength="72"/><button type="button" onClick={() => setShowPassword((value) => !value)}>{showPassword ? '숨기기' : '보기'}</button></div>
-          <button className="primary-button auth-submit" disabled={loading}>{loading ? '처리 중...' : signup ? '회원가입' : '로그인'}</button>
+          <button className="primary-button auth-submit" disabled={loading || (signup && !(availability?.available === true && availability.loginId === loginId))}>{loading ? '처리 중...' : signup ? '회원가입' : '로그인'}</button>
           <p className="auth-switch">{signup ? '이미 계정이 있나요?' : '계정이 없나요?'} <Link to={signup ? '/login' : '/signup'} navigate={navigate}>{signup ? '로그인' : '회원가입'}</Link></p>
         </form>
       </section>

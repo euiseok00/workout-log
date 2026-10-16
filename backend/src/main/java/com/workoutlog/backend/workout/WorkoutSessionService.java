@@ -79,6 +79,11 @@ public class WorkoutSessionService {
 		return WorkoutSessionResponse.from(session, routine == null ? null : routine.getName());
 	}
 
+	@Transactional
+	public void deleteSession(Integer sessionId, Integer userId) {
+		workoutSessionRepository.delete(findOwnedSession(sessionId, userId));
+	}
+
 	private WorkoutSession findOwnedSession(Integer sessionId, Integer userId) {
 		return workoutSessionRepository.findByIdAndUserId(sessionId, userId)
 				.orElseThrow(WorkoutSessionNotFoundException::new);

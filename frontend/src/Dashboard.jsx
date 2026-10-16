@@ -12,9 +12,10 @@ function isoDate(year, month, day) {
 export default function Dashboard({ navigate, auth }) {
   const { triggerCharacter } = useCharacterEvent()
   const entered = useRef(false)
-  const today = new Date(`${todayString()}T00:00:00`)
-  const [cursor, setCursor] = useState(new Date(today.getFullYear(), today.getMonth(), 1))
-  const [selected, setSelected] = useState(todayString())
+  const initialDate = window.history.state?.selectedDate || todayString()
+  const initialDay = new Date(`${initialDate}T00:00:00`)
+  const [cursor, setCursor] = useState(new Date(initialDay.getFullYear(), initialDay.getMonth(), 1))
+  const [selected, setSelected] = useState(initialDate)
   const [sessions, setSessions] = useState([])
   const [summary, setSummary] = useState(null)
   const [error, setError] = useState(null)

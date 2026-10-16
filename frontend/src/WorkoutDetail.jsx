@@ -2,13 +2,16 @@ import { useEffect, useState } from 'react'
 import { api } from './api'
 import { useCharacterEvent } from './themes/characterEventContext'
 import { CHARACTER_EVENTS } from './themes/characterEvents'
-import { ErrorMessage, Icon, Loading, PageHeader } from './ui'
+import { ErrorMessage, Icon, Link, Loading, Modal, PageHeader } from './ui'
 import { bodyPartLabel, formatDate, formatNumber, todayString } from './utils'
 
 export default function WorkoutDetail({ id, navigate, auth }) {
   const { triggerCharacter } = useCharacterEvent()
   const [session, setSession] = useState(null)
   const [error, setError] = useState(null)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteError, setDeleteError] = useState(null)
+  const [deleting, setDeleting] = useState(false)
   useEffect(() => {
     let active = true
     api(`/api/workout-sessions/${id}`).then((value) => active && setSession(value)).catch((requestError) => active && setError(requestError))
@@ -24,5 +27,16 @@ export default function WorkoutDetail({ id, navigate, auth }) {
     triggerCharacter(CHARACTER_EVENTS.RECORD_LOAD)
     navigate('/workout')
   }
-  return <div className="page workout-detail-page"><PageHeader back="/dashboard" navigate={navigate} eyebrow={formatDate(session.workoutDate)} title={session.routineName || '자유 운동'}/><div className="detail-summary"><div><span>운동 종목</span><b>{session.exercises.length}<small>개</small></b></div><div><span>완료 세트</span><b>{completedSets.length}<small>세트</small></b></div><div><span>총 볼륨</span><b>{formatNumber(volume, 2)}<small>kg</small></b></div></div><section className="detail-exercises">{session.exercises.map((exercise, index) => <article className="detail-exercise" key={exercise.exerciseId}><header><span>{String(index + 1).padStart(2, '0')}</span><div><h2>{exercise.name}</h2><p>{bodyPartLabel(exercise.bodyPart)}</p></div></header><div>{exercise.sets.map((set) => <p className={set.completed ? 'completed' : ''} key={set.setNumber}><span>{set.setNumber}세트</span><b>{Number(set.weight) === 0 ? '맨몸' : `${set.weight}kg`} × {set.reps}회</b><i>{set.completed ? <Icon name="check" size={16}/> : '미완료'}</i></p>)}</div></article>)}</section><button className="primary-button full load-workout-button" onClick={loadWorkout}><Icon name="history" size={19}/> 이 운동 불러오기</button></div>
+  const deleteSession = async () => {
+    setDeleteError(null)
+    setDeleting(true)
+    try {
+      await api(`/api/workout-sessions/${id}`, { method: 'DELETE' })
+      navigate('/dashboard', false, { selectedDate: session.workoutDate })
+    } catch (requestError) {
+      setDeleteError(requestError)
+      setDeleting(false)
+    }
+  }
+  return <div className="page workout-detail-page"><PageHeader back="/dashboard" navigate={navigate} eyebrow={formatDate(session.workoutDate)} title={session.routineName || '자유 운동'}/><div className="detail-actions"><Link to={`/workouts/${id}/edit`} navigate={navigate} className="secondary-button compact">수정</Link><button className="text-button danger" onClick={() => setDeleteOpen(true)}>삭제</button></div><div className="detail-summary"><div><span>운동 종목</span><b>{session.exercises.length}<small>개</small></b></div><div><span>완료 세트</span><b>{completedSets.length}<small>세트</small></b></div><div><span>총 볼륨</span><b>{formatNumber(volume, 2)}<small>kg</small></b></div></div><section className="detail-exercises">{session.exercises.map((exercise, index) => <article className="detail-exercise" key={exercise.exerciseId}><header><span>{String(index + 1).padStart(2, '0')}</span><div><h2>{exercise.name}</h2><p>{bodyPartLabel(exercise.bodyPart)}</p></div></header><div>{exercise.sets.map((set) => <p className={set.completed ? 'completed' : ''} key={set.setNumber}><span>{set.setNumber}세트</span><b>{Number(set.weight) === 0 ? '맨몸' : `${set.weight}kg`} × {set.reps}회</b><i>{set.completed ? <Icon name="check" size={16}/> : '미완료'}</i></p>)}</div></article>)}</section><button className="primary-button full load-workout-button" onClick={loadWorkout}><Icon name="history" size={19}/> 이 운동 불러오기</button>{deleteOpen && <Modal title="운동 기록 삭제" onClose={() => !deleting && setDeleteOpen(false)}><p>이 운동 기록을 삭제하시겠습니까? 삭제한 기록은 복구할 수 없습니다.</p><ErrorMessage error={deleteError}/><div className="detail-delete-actions"><button className="secondary-button" onClick={() => setDeleteOpen(false)} disabled={deleting}>취소</button><button className="primary-button delete-confirm-button" onClick={deleteSession} disabled={deleting}>{deleting ? '삭제 중...' : '삭제'}</button></div></Modal>}</div>
 }

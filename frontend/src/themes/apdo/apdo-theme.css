@@ -132,7 +132,7 @@
 :root[data-theme="apdo"] .field-help.danger { color: #df8187; }
 
 @media (max-width: 760px) {
-  :root[data-theme="apdo"] .bottom-nav { background: #202124f5; border-color: #604047; border-radius: 16px; }
+  :root[data-theme="apdo"] .bottom-nav { background: #202124; border-color: #604047; border-radius: 18px 18px 0 0; }
   :root[data-theme="apdo"] .bottom-nav-item { color: var(--muted); border-radius: 11px; }
   :root[data-theme="apdo"] .bottom-nav-item.active { background: #51292f; color: var(--ivory); }
   :root[data-theme="apdo"] .form-actions { background: #101113e6; }

@@ -219,7 +219,7 @@
 :root[data-theme="allright"] .field-help.danger { color: #e1a298; }
 
 @media (max-width: 760px) {
-  :root[data-theme="allright"] .bottom-nav { background: #20261df5; border-color: #536346; }
+  :root[data-theme="allright"] .bottom-nav { background: #20261d; border-color: #536346; }
   :root[data-theme="allright"] .bottom-nav-item { color: var(--muted); }
   :root[data-theme="allright"] .bottom-nav-item.active { background: #394530; color: var(--ink); }
   :root[data-theme="allright"] .form-actions { background: #10130fe6; }
