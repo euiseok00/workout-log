@@ -3,6 +3,8 @@ import { CHARACTER_EVENTS } from '../characterEvents'
 export default {
   [CHARACTER_EVENTS.DASHBOARD_ENTER]: '올라잇임돠.',
   [CHARACTER_EVENTS.WORKOUT_ENTER]: '오늘도 갑니다.',
+  [CHARACTER_EVENTS.ROUTINES_ENTER]: '루틴 한번 봅시다.',
+  [CHARACTER_EVENTS.EXERCISES_ENTER]: '종목 한번 봅시다.',
   [CHARACTER_EVENTS.ROUTINE_START]: '좋습니다. 가시죠.',
   [CHARACTER_EVENTS.ROUTINE_SELECT]: '이걸로 갑니다.',
   [CHARACTER_EVENTS.FREE_WORKOUT_START]: '올라잇. 시작하시죠.',

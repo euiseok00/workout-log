@@ -2,8 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { api, query } from './api'
 import { useCharacterEvent } from './themes/characterEventContext'
 import { CHARACTER_EVENTS } from './themes/characterEvents'
+import { themes } from './themes'
+import { useTheme } from './themes/themeContext'
 import { EmptyState, ErrorMessage, Icon, Link, Loading, PageHeader } from './ui'
-import { formatDate, formatNumber, todayString } from './utils'
+import { bodyPartLabel, formatDate, formatNumber, todayString, volumeChange } from './utils'
 
 function isoDate(year, month, day) {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
@@ -11,13 +13,15 @@ function isoDate(year, month, day) {
 
 export default function Dashboard({ navigate, auth }) {
   const { triggerCharacter } = useCharacterEvent()
+  const { currentTheme } = useTheme()
+  const calendarFace = themes[currentTheme].calendarFace
   const entered = useRef(false)
   const initialDate = window.history.state?.selectedDate || todayString()
   const initialDay = new Date(`${initialDate}T00:00:00`)
   const [cursor, setCursor] = useState(new Date(initialDay.getFullYear(), initialDay.getMonth(), 1))
   const [selected, setSelected] = useState(initialDate)
   const [sessions, setSessions] = useState([])
-  const [summary, setSummary] = useState(null)
+  const [stats, setStats] = useState(null)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
   const year = cursor.getFullYear()
@@ -41,9 +45,9 @@ export default function Dashboard({ navigate, auth }) {
     let active = true
     Promise.all([
       api(`/api/workout-sessions${query({ from, to })}`),
-      api(`/api/statistics/summary${query({ from, to })}`),
-    ]).then(([sessionData, summaryData]) => {
-      if (active) { setSessions(sessionData); setSummary(summaryData); setError(null) }
+      api(`/api/statistics/dashboard${query({ today: todayString() })}`),
+    ]).then(([sessionData, dashboardData]) => {
+      if (active) { setSessions(sessionData); setStats(dashboardData); setError(null) }
     }).catch((requestError) => active && setError(requestError)).finally(() => active && setLoading(false))
     return () => { active = false }
   }, [from, to])
@@ -57,20 +61,16 @@ export default function Dashboard({ navigate, auth }) {
   for (let index = 0; index < firstDay; index += 1) days.push(null)
   for (let day = 1; day <= lastDate; day += 1) days.push(day)
   const selectedSessions = byDate[selected] || []
-  const stats = summary ? [
-    ['이번 달 운동', summary.workoutCount, '회'],
-    ['완료 세트', summary.completedSetCount, '세트'],
-    ['총 반복', summary.totalReps, '회'],
-    ['총 볼륨', summary.totalVolume, 'kg'],
-  ] : []
-
   return (
     <div className="page dashboard-page">
       <PageHeader eyebrow={`${auth.user.loginId}님의 기록`} title="오늘도 나답게, 한 세트씩" action={<span className="today-chip"><Icon name="calendar" size={17}/>{formatDate(todayString(), false)}</span>}/>
       <ErrorMessage error={error}/>
       {loading ? <Loading/> : <>
-        <section className="stats-grid" aria-label="이번 달 통계">
-          {stats.map(([label, value, unit], index) => <article className={`stat-card stat-${index + 1}`} key={label}><span>{label}</span><strong>{formatNumber(value, 2)}<small>{unit}</small></strong><i/></article>)}
+        <section className="stats-grid" aria-label="운동 통계">
+          <article className="stat-card stat-1"><span>이번 달 운동</span><strong>{formatNumber(stats?.monthlyWorkoutDays)}<small>일</small></strong><i/></article>
+          <article className="stat-card stat-2"><span>이번 주 완료 세트</span><strong>{formatNumber(stats?.currentWeekCompletedSetCount)}<small>세트</small></strong><p className="stat-note">지난주 {formatNumber(stats?.previousWeekCompletedSetCount)}세트</p><i/></article>
+          <article className="stat-card stat-3"><span>이번 주 볼륨</span><strong>{formatNumber(stats?.currentWeekVolume, 2)}<small>kg</small></strong><p className="stat-note">지난주 {formatNumber(stats?.previousWeekVolume, 2)}kg · {volumeChange(stats?.currentWeekVolume, stats?.previousWeekVolume)}</p><i/></article>
+          {stats?.recentSession ? <Link to={`/workouts/${stats.recentSession.id}`} navigate={openRecord} className="stat-card stat-4 stat-recent"><span>최근 운동</span><strong>{formatDate(stats.recentSession.workoutDate, false)}</strong><p className="stat-note">운동 {stats.recentSession.exerciseCount}개 · 기록 보기</p><i/></Link> : <article className="stat-card stat-4"><span>최근 운동</span><strong>기록 없음</strong><i/></article>}
         </section>
         <div className="dashboard-grid">
           <section className="card calendar-card">
@@ -80,7 +80,7 @@ export default function Dashboard({ navigate, auth }) {
               if (!day) return <span key={`empty-${index}`} />
               const date = isoDate(year, month, day)
               const count = byDate[date]?.length || 0
-              return <button key={date} className={`${selected === date ? 'selected' : ''} ${date === todayString() ? 'today' : ''}`} onClick={() => setSelected(date)}><span>{day}</span>{count > 0 && <i>{count > 1 ? count : ''}</i>}</button>
+              return <button key={date} className={`${selected === date ? 'selected' : ''} ${date === todayString() ? 'today' : ''}`} onClick={() => setSelected(date)}><span className="calendar-day">{day}</span><span className="calendar-marker">{count > 0 && (calendarFace ? <><img className="calendar-face" src={calendarFace} alt=""/>{count > 1 && <i className="calendar-face-count">{count}</i>}</> : <i>{count > 1 ? count : ''}</i>)}</span></button>
             })}</div>
           </section>
           <section className="day-sessions">
@@ -91,6 +91,18 @@ export default function Dashboard({ navigate, auth }) {
             }) : <EmptyState icon="calendar" title="이날 기록된 운동이 없어요" description="가볍게 오늘의 운동을 시작해보세요." action={<Link to="/workout" navigate={navigate} className="secondary-button">운동 시작</Link>}/>}</div>
           </section>
         </div>
+        <section className="card body-volume-section" aria-label="부위별 주간 볼륨">
+          <header className="section-header"><div><p className="eyebrow">WEEKLY VOLUME</p><h2>부위별 주간 볼륨</h2></div><span className="count-badge">월요일–일요일</span></header>
+          <div className="body-volume-table-wrap"><table className="body-volume-table">
+            <thead><tr><th scope="col">부위</th><th scope="col">이번 주</th><th scope="col">지난주</th><th scope="col">증감률</th></tr></thead>
+            <tbody>{stats?.bodyPartVolumes.map((part) => <tr key={part.bodyPart}>
+              <th scope="row">{bodyPartLabel(part.bodyPart)}</th>
+              <td>{formatNumber(part.currentWeekVolume, 2)} kg</td>
+              <td>{formatNumber(part.previousWeekVolume, 2)} kg</td>
+              <td>{volumeChange(part.currentWeekVolume, part.previousWeekVolume)}</td>
+            </tr>)}</tbody>
+          </table></div>
+        </section>
       </>}
     </div>
   )

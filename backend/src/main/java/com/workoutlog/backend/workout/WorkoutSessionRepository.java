@@ -24,4 +24,7 @@ public interface WorkoutSessionRepository extends JpaRepository<WorkoutSession, 
 
 	@EntityGraph(attributePaths = { "exercises", "exercises.exercise" })
 	Optional<WorkoutSession> findByIdAndUserId(Integer id, Integer userId);
+
+	@EntityGraph(attributePaths = "exercises")
+	Optional<WorkoutSession> findFirstByUserIdOrderByWorkoutDateDescIdDesc(Integer userId);
 }

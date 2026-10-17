@@ -15,6 +15,12 @@ export function formatNumber(value, maximumFractionDigits = 0) {
   return Number(value || 0).toLocaleString('ko-KR', { maximumFractionDigits })
 }
 
+export function volumeChange(current, previous) {
+  if (Number(previous) === 0) return Number(current) > 0 ? '신규' : '—'
+  const percent = (Number(current) - Number(previous)) / Number(previous) * 100
+  return `${percent > 0 ? '+' : ''}${formatNumber(percent, 1)}%`
+}
+
 export function formatDate(value, withYear = true) {
   if (!value) return ''
   const [year, month, day] = value.split('-').map(Number)

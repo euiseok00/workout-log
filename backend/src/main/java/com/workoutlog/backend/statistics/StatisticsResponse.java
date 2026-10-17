@@ -14,6 +14,17 @@ public final class StatisticsResponse {
 	public record Summary(long workoutCount, long completedSetCount, long totalReps, BigDecimal totalVolume) {
 	}
 
+	public record Dashboard(long monthlyWorkoutDays, long currentWeekCompletedSetCount,
+			long previousWeekCompletedSetCount, BigDecimal currentWeekVolume, BigDecimal previousWeekVolume,
+			List<BodyPartVolume> bodyPartVolumes, RecentSession recentSession) {
+	}
+
+	public record BodyPartVolume(BodyPart bodyPart, BigDecimal currentWeekVolume, BigDecimal previousWeekVolume) {
+	}
+
+	public record RecentSession(Integer id, LocalDate workoutDate, int exerciseCount) {
+	}
+
 	public record Exercise(Integer exerciseId, String name, BodyPart bodyPart, long sessionCount,
 			long completedSetCount, long totalReps, BigDecimal totalVolume, BigDecimal maxWeight,
 			List<History> history) {

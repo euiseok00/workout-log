@@ -116,6 +116,50 @@ class StatisticsApiTests extends PostgresIntegrationTest {
 	}
 
 	@Test
+	void calculatesDashboardAcrossFullMondayToSundayWeeks() throws Exception {
+		User user = saveUser("stats_dashboard");
+		User other = saveUser("dashboard_other");
+		Integer chest = defaultExerciseId("벤치프레스");
+		Integer back = defaultExerciseId("바벨 로우");
+		Integer arms = defaultExerciseId("바벨 컬");
+		Integer legs = defaultExerciseId("스쿼트");
+		createSession(user, LocalDate.parse("2026-10-02"), chest, completedSet(1, "10.00", 10));
+		createSession(user, LocalDate.parse("2026-09-28"), legs, completedSet(1, "10.00", 10));
+		createSession(user, LocalDate.parse("2026-10-04"), chest, """
+				{"setNumber":1,"weight":20.00,"reps":10,"completed":true},
+				{"setNumber":2,"weight":999.00,"reps":10,"completed":false}
+				""");
+		createSession(user, LocalDate.parse("2026-10-05"), chest, completedSet(1, "30.00", 10));
+		createSession(user, LocalDate.parse("2026-10-05"), arms, completedSet(1, "0.00", 12));
+		createSession(user, LocalDate.parse("2026-10-11"), back, completedSet(1, "40.00", 5));
+		createSession(other, LocalDate.parse("2026-10-11"), chest, completedSet(1, "999.00", 99));
+
+		mockMvc.perform(get("/api/statistics/dashboard").param("today", "2026-10-11").with(jwtFor(user)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.monthlyWorkoutDays").value(4))
+				.andExpect(jsonPath("$.currentWeekCompletedSetCount").value(3))
+				.andExpect(jsonPath("$.previousWeekCompletedSetCount").value(3))
+				.andExpect(jsonPath("$.currentWeekVolume").value(500.0))
+				.andExpect(jsonPath("$.previousWeekVolume").value(400.0))
+				.andExpect(jsonPath("$.bodyPartVolumes.length()").value(5))
+				.andExpect(jsonPath("$.bodyPartVolumes[0].bodyPart").value("CHEST"))
+				.andExpect(jsonPath("$.bodyPartVolumes[0].currentWeekVolume").value(300.0))
+				.andExpect(jsonPath("$.bodyPartVolumes[0].previousWeekVolume").value(300.0))
+				.andExpect(jsonPath("$.bodyPartVolumes[1].currentWeekVolume").value(200.0))
+				.andExpect(jsonPath("$.bodyPartVolumes[3].currentWeekVolume").value(0))
+				.andExpect(jsonPath("$.bodyPartVolumes[4].previousWeekVolume").value(100.0))
+				.andExpect(jsonPath("$.recentSession.workoutDate").value("2026-10-11"))
+				.andExpect(jsonPath("$.recentSession.exerciseCount").value(1));
+
+		User empty = saveUser("dashboard_empty");
+		mockMvc.perform(get("/api/statistics/dashboard").param("today", "2026-10-11").with(jwtFor(empty)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.monthlyWorkoutDays").value(0))
+				.andExpect(jsonPath("$.currentWeekVolume").value(0))
+				.andExpect(jsonPath("$.recentSession").value((Object) null));
+	}
+
+	@Test
 	void returnsExerciseStatisticsAndAggregatesHistoryByDate() throws Exception {
 		User user = saveUser("stats_exercise");
 		User other = saveUser("stats_exercise_other");

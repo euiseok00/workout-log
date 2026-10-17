@@ -29,6 +29,13 @@ public class StatisticsController {
 		return statisticsService.getSummary(Integer.valueOf(jwt.getSubject()), from, to);
 	}
 
+	@GetMapping("/dashboard")
+	public StatisticsResponse.Dashboard getDashboard(
+			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate today,
+			@AuthenticationPrincipal Jwt jwt) {
+		return statisticsService.getDashboard(Integer.valueOf(jwt.getSubject()), today);
+	}
+
 	@GetMapping("/exercises/{exerciseId}")
 	public StatisticsResponse.Exercise getExerciseStatistics(@PathVariable Integer exerciseId,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,

@@ -6,13 +6,17 @@ import oneMore from './assets/apdo-one-more.webp'
 import checkRecord from './assets/apdo-check-record.webp'
 import success from './assets/apdo-success.webp'
 import fail from './assets/apdo-fail.webp'
+import calendarFace from './assets/apdo-face.webp'
 import messages from './messages'
 
 export default {
   id: 'apdo',
+  calendarFace,
   images: {
     [CHARACTER_EVENTS.DASHBOARD_ENTER]: normal,
     [CHARACTER_EVENTS.WORKOUT_ENTER]: fighting,
+    [CHARACTER_EVENTS.ROUTINES_ENTER]: fighting,
+    [CHARACTER_EVENTS.EXERCISES_ENTER]: thumbsUp,
     [CHARACTER_EVENTS.ROUTINE_START]: fighting,
     [CHARACTER_EVENTS.ROUTINE_SELECT]: fighting,
     [CHARACTER_EVENTS.FREE_WORKOUT_START]: fighting,
