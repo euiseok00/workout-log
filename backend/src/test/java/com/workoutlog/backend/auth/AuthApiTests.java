@@ -41,7 +41,7 @@ class AuthApiTests extends PostgresIntegrationTest {
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.accessToken").isNotEmpty())
 				.andExpect(jsonPath("$.tokenType").value("Bearer"))
-				.andExpect(jsonPath("$.expiresIn").value(3600))
+				.andExpect(jsonPath("$.expiresIn").value(21600))
 				.andExpect(jsonPath("$.user.loginId").value("workout_user"));
 
 		User user = userRepository.findByLoginId("workout_user").orElseThrow();

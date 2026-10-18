@@ -1,6 +1,10 @@
 package com.workoutlog.backend.routine;
 
 import com.workoutlog.backend.exercise.Exercise;
+import java.util.ArrayList;
+import java.util.List;
+
+import jakarta.persistence.CascadeType;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -10,13 +14,14 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
 @Entity
 @Table(name = "exercise_in_routine", uniqueConstraints = {
-		@UniqueConstraint(name = "uq_exercise_in_routine_order", columnNames = { "routine_id", "exercise_order" }),
-		@UniqueConstraint(name = "uq_exercise_in_routine_exercise", columnNames = { "routine_id", "exercise_id" })
+		@UniqueConstraint(name = "uq_exercise_in_routine_order", columnNames = { "routine_id", "exercise_order" })
 })
 public class ExerciseInRoutine {
 
@@ -40,6 +45,10 @@ public class ExerciseInRoutine {
 
 	@Column(name = "target_reps")
 	private Integer targetReps;
+
+	@OneToMany(mappedBy = "exerciseInRoutine", cascade = CascadeType.ALL, orphanRemoval = true)
+	@OrderBy("setNumber ASC")
+	private List<RoutineSet> sets = new ArrayList<>();
 
 	protected ExerciseInRoutine() {
 	}
@@ -72,4 +81,7 @@ public class ExerciseInRoutine {
 	public Integer getTargetReps() {
 		return targetReps;
 	}
+
+	public void addSet(RoutineSet set) { sets.add(set); }
+	public List<RoutineSet> getSets() { return sets; }
 }

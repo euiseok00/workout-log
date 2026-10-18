@@ -5,7 +5,7 @@ import { CHARACTER_EVENTS } from './themes/characterEvents'
 import { themes } from './themes'
 import { useTheme } from './themes/themeContext'
 import { EmptyState, ErrorMessage, Icon, Link, Loading, PageHeader } from './ui'
-import { bodyPartLabel, formatDate, formatNumber, todayString, volumeChange } from './utils'
+import { bodyPartLabel, formatDate, formatNumber, todayString, volumeChange, volumeDifference } from './utils'
 
 function isoDate(year, month, day) {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
@@ -94,13 +94,16 @@ export default function Dashboard({ navigate, auth }) {
         <section className="card body-volume-section" aria-label="부위별 주간 볼륨">
           <header className="section-header"><div><p className="eyebrow">WEEKLY VOLUME</p><h2>부위별 주간 볼륨</h2></div><span className="count-badge">월요일–일요일</span></header>
           <div className="body-volume-table-wrap"><table className="body-volume-table">
-            <thead><tr><th scope="col">부위</th><th scope="col">이번 주</th><th scope="col">지난주</th><th scope="col">증감률</th></tr></thead>
-            <tbody>{stats?.bodyPartVolumes.map((part) => <tr key={part.bodyPart}>
-              <th scope="row">{bodyPartLabel(part.bodyPart)}</th>
-              <td>{formatNumber(part.currentWeekVolume, 2)} kg</td>
-              <td>{formatNumber(part.previousWeekVolume, 2)} kg</td>
-              <td>{volumeChange(part.currentWeekVolume, part.previousWeekVolume)}</td>
-            </tr>)}</tbody>
+            <thead><tr><th scope="col">부위</th><th scope="col">이번 주</th><th scope="col">지난주</th><th scope="col">증감 중량</th></tr></thead>
+            <tbody>{stats?.bodyPartVolumes.map((part) => {
+              const difference = Number(part.currentWeekVolume) - Number(part.previousWeekVolume)
+              return <tr key={part.bodyPart}>
+                <th scope="row">{bodyPartLabel(part.bodyPart)}</th>
+                <td>{formatNumber(part.currentWeekVolume, 2)} kg</td>
+                <td>{formatNumber(part.previousWeekVolume, 2)} kg</td>
+                <td className={difference > 0 ? 'volume-increase' : difference < 0 ? 'volume-decrease' : ''}>{volumeDifference(part.currentWeekVolume, part.previousWeekVolume)}</td>
+              </tr>
+            })}</tbody>
           </table></div>
         </section>
       </>}

@@ -53,7 +53,7 @@ export function PageHeader({ title, eyebrow, action, back, navigate }) {
   return (
     <header className="page-header">
       <div className="page-title-wrap">
-        {back && <button className="icon-button" onClick={() => navigate(back)} aria-label="뒤로 가기"><Icon name="back" /></button>}
+        {back && <button type="button" className="icon-button" onClick={() => navigate(back)} aria-label="뒤로 가기"><Icon name="back" /></button>}
         <div>
           {eyebrow && <p className="eyebrow">{eyebrow}</p>}
           <h1>{title}</h1>

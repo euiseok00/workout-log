@@ -254,6 +254,7 @@ class StatisticsApiTests extends PostgresIntegrationTest {
 		jdbcTemplate.update("DELETE FROM exercise_set");
 		jdbcTemplate.update("DELETE FROM exercise_in_session");
 		jdbcTemplate.update("DELETE FROM workout_session");
+		jdbcTemplate.update("DELETE FROM routine_set");
 		jdbcTemplate.update("DELETE FROM exercise_in_routine");
 		jdbcTemplate.update("DELETE FROM routine");
 		exerciseRepository.deleteAll(exerciseRepository.findAll().stream()

@@ -3,23 +3,23 @@ import { api } from './api'
 import { EmptyState, ErrorMessage, Icon, Link, Loading, Modal, PageHeader } from './ui'
 import { BODY_PARTS, bodyPartLabel, formatDate, formatNumber } from './utils'
 
-function NewExercise({ onCreated, onClose }) {
-  const [name, setName] = useState('')
-  const [bodyPart, setBodyPart] = useState('CHEST')
+function ExerciseEditor({ exercise, onSaved, onClose }) {
+  const [name, setName] = useState(exercise?.name || '')
+  const [bodyPart, setBodyPart] = useState(exercise?.bodyPart || 'CHEST')
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
   const save = async (event) => {
     event.preventDefault(); setSaving(true); setError(null)
-    try { onCreated(await api('/api/exercises', { method: 'POST', body: { name, bodyPart } })) } catch (requestError) { setError(requestError) } finally { setSaving(false) }
+    try { onSaved(await api(exercise ? `/api/exercises/${exercise.id}` : '/api/exercises', { method: exercise ? 'PUT' : 'POST', body: { name, bodyPart } })) } catch (requestError) { setError(requestError) } finally { setSaving(false) }
   }
-  return <Modal title="내 운동 추가" onClose={onClose}><form className="modal-form" onSubmit={save}><ErrorMessage error={error}/><label className="field-label">운동 이름</label><input className="large-input" value={name} onChange={(event) => setName(event.target.value)} placeholder="예: 원암 케이블 로우" maxLength="100" required/><label className="field-label">운동 부위</label><div className="body-part-grid">{BODY_PARTS.slice(1).map(([key, label]) => <button type="button" className={`chip ${bodyPart === key ? 'active' : ''}`} onClick={() => setBodyPart(key)} key={key}>{label}</button>)}</div><button className="primary-button full" disabled={saving}>{saving ? '저장 중...' : '운동 저장'}</button></form></Modal>
+  return <Modal title={exercise ? '내 운동 수정' : '내 운동 추가'} onClose={onClose}><form className="modal-form" onSubmit={save}><ErrorMessage error={error}/><label className="field-label">운동 이름</label><input className="large-input" value={name} onChange={(event) => setName(event.target.value)} placeholder="예: 원암 케이블 로우" maxLength="100" required/><label className="field-label">운동 부위</label><div className="body-part-grid">{BODY_PARTS.slice(1).map(([key, label]) => <button type="button" className={`chip ${bodyPart === key ? 'active' : ''}`} onClick={() => setBodyPart(key)} key={key}>{label}</button>)}</div><button className="primary-button full" disabled={saving}>{saving ? '저장 중...' : '운동 저장'}</button></form></Modal>
 }
 
 export function ExerciseList({ navigate }) {
   const [exercises, setExercises] = useState(null)
   const [filter, setFilter] = useState('ALL')
   const [search, setSearch] = useState('')
-  const [newOpen, setNewOpen] = useState(false)
+  const [editor, setEditor] = useState(null)
   const [error, setError] = useState(null)
   useEffect(() => {
     let active = true
@@ -27,7 +27,7 @@ export function ExerciseList({ navigate }) {
     return () => { active = false }
   }, [])
   const filtered = useMemo(() => (exercises || []).filter((exercise) => (filter === 'ALL' || exercise.bodyPart === filter) && exercise.name.toLowerCase().includes(search.toLowerCase())), [exercises, filter, search])
-  return <div className="page"><PageHeader eyebrow="EXERCISE LIBRARY" title="운동 종목" action={<button className="primary-button compact" onClick={() => setNewOpen(true)}><Icon name="plus" size={18}/> 운동 추가</button>}/><p className="page-lead">기본 운동과 직접 추가한 운동의 기록을 확인하세요.</p><ErrorMessage error={error}/><div className="exercise-toolbar"><div className="search-field"><Icon name="search" size={19}/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="운동 검색..."/></div><div className="chip-row">{BODY_PARTS.map(([key, label]) => <button key={key} className={`chip ${filter === key ? 'active' : ''}`} onClick={() => setFilter(key)}>{label}</button>)}</div></div>{!exercises ? <Loading/> : filtered.length ? <div className="exercise-list-grid">{filtered.map((exercise) => <Link to={`/exercises/${exercise.id}/history`} navigate={navigate} className="exercise-list-card" key={exercise.id}><span className={`exercise-symbol body-${exercise.bodyPart.toLowerCase()}`}>{exercise.name.slice(0, 1)}</span><div><h3>{exercise.name}</h3><p>{bodyPartLabel(exercise.bodyPart)} <i/> {exercise.custom ? '내 운동' : '기본 운동'}</p></div><Icon name="chevron"/></Link>)}</div> : <EmptyState icon="search" title="조건에 맞는 운동이 없어요" description="검색어나 부위 필터를 변경해 보세요."/>}{newOpen && <NewExercise onClose={() => setNewOpen(false)} onCreated={(exercise) => { setExercises((current) => [...current, exercise]); setNewOpen(false) }}/>}</div>
+  return <div className="page"><PageHeader eyebrow="EXERCISE LIBRARY" title="운동 종목" action={<button className="primary-button compact" onClick={() => setEditor({})}><Icon name="plus" size={18}/> 운동 추가</button>}/><p className="page-lead">기본 운동과 직접 추가한 운동의 기록을 확인하세요.</p><ErrorMessage error={error}/><div className="exercise-toolbar"><div className="search-field"><Icon name="search" size={19}/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="운동 검색..."/></div><div className="chip-row">{BODY_PARTS.map(([key, label]) => <button key={key} className={`chip ${filter === key ? 'active' : ''}`} onClick={() => setFilter(key)}>{label}</button>)}</div></div>{!exercises ? <Loading/> : filtered.length ? <div className="exercise-list-grid">{filtered.map((exercise) => <div className="exercise-list-item" key={exercise.id}><Link to={`/exercises/${exercise.id}/history`} navigate={navigate} className="exercise-list-card"><span className={`exercise-symbol body-${exercise.bodyPart.toLowerCase()}`}>{exercise.name.slice(0, 1)}</span><div><h3>{exercise.name}</h3><p>{bodyPartLabel(exercise.bodyPart)} <i/> {exercise.custom ? '내 운동' : '기본 운동'}</p></div><Icon name="chevron"/></Link>{exercise.custom && <button className="exercise-edit-button" onClick={() => setEditor(exercise)} aria-label={`${exercise.name} 수정`}>수정</button>}</div>)}</div> : <EmptyState icon="search" title="조건에 맞는 운동이 없어요" description="검색어나 부위 필터를 변경해 보세요."/>}{editor && <ExerciseEditor exercise={editor.id ? editor : null} onClose={() => setEditor(null)} onSaved={(saved) => { setExercises((current) => editor.id ? current.map((item) => item.id === saved.id ? saved : item) : [...current, saved]); setEditor(null) }}/>}</div>
 }
 
 export function ExerciseHistory({ id, navigate }) {

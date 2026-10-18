@@ -11,6 +11,14 @@
   --raised: #292e25;
   --khaki: #c9bea0;
   --deep: #181c17;
+  --accent-soft: #303a2a;
+  --focus-ring: #a3b66d26;
+  --success: #a3b66d;
+  --danger: #e1a298;
+  --danger-hover: #efb7ad;
+  --danger-soft: #392621;
+  --danger-line: #744538;
+  --danger-contrast: #181c17;
   color: var(--ink);
   background: var(--background);
 }
@@ -113,7 +121,7 @@
 :root[data-theme="allright"] .session-icon { background: #394530; color: var(--accent); }
 
 /* Workout, routine selection, and sets */
-:root[data-theme="allright"] :is(.start-option, .routine-select-card, .exercise-card, .routine-card, .routine-exercise-row, .exercise-list-card, .detail-exercise) {
+:root[data-theme="allright"] :is(.start-option, .routine-select-card, .exercise-card, .routine-card, .routine-exercise-row, .routine-exercise-card, .exercise-list-card, .detail-exercise) {
   background: var(--surface);
   color: var(--ink);
   border: 1px solid var(--line);
@@ -156,12 +164,13 @@
 :root[data-theme="allright"] .set-row.completed { background: #2e3a29; }
 :root[data-theme="allright"] .set-row label input,
 :root[data-theme="allright"] .routine-exercise-row label input,
+:root[data-theme="allright"] .routine-set-row label input,
 :root[data-theme="allright"] :is(.auth-form input, .large-input) {
   background: var(--deep);
   color: var(--ink);
   border-color: var(--line);
 }
-:root[data-theme="allright"] :is(.set-row label input, .routine-exercise-row label input, .auth-form input, .large-input):focus {
+:root[data-theme="allright"] :is(.set-row label input, .routine-exercise-row label input, .routine-set-row label input, .auth-form input, .large-input):focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px #a3b66d26;
 }

@@ -13,6 +13,16 @@
   --accent: #f23847;
   --blue: #246eff;
   --shadow: 0 12px 38px rgba(31, 31, 40, 0.07);
+  --raised: #f3f3f5;
+  --deep: #fafafa;
+  --accent-soft: #fff0f1;
+  --focus-ring: rgba(242, 56, 71, .16);
+  --success: #198754;
+  --danger: #ce2c3a;
+  --danger-hover: #b8202e;
+  --danger-soft: #fff0f1;
+  --danger-line: #ffd2d7;
+  --danger-contrast: #fff;
 }
 * { box-sizing: border-box; }
 html { background: var(--background); }

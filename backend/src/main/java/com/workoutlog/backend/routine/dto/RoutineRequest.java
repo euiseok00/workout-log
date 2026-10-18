@@ -1,11 +1,14 @@
 package com.workoutlog.backend.routine.dto;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
@@ -26,6 +29,13 @@ public record RoutineRequest(
 			@Positive(message = "목표 세트 수는 양수여야 합니다.")
 			Integer targetSets,
 			@Positive(message = "목표 반복 수는 양수여야 합니다.")
-			Integer targetReps) {
+			Integer targetReps,
+			List<@NotNull @Valid SetRequest> sets) {
+	}
+
+	public record SetRequest(
+			@NotNull @Positive Integer setNumber,
+			@NotNull @DecimalMin("0.00") @Digits(integer = 4, fraction = 2) BigDecimal weight,
+			@NotNull @jakarta.validation.constraints.PositiveOrZero Integer reps) {
 	}
 }

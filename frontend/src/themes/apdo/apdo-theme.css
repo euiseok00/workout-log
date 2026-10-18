@@ -11,6 +11,14 @@
   --raised: #303135;
   --deep: #191a1d;
   --ivory: #e8ded1;
+  --accent-soft: #39292d;
+  --focus-ring: #ad394333;
+  --success: #67c587;
+  --danger: #e07a80;
+  --danger-hover: #ef969a;
+  --danger-soft: #3b2227;
+  --danger-line: #764047;
+  --danger-contrast: #fff7f0;
   color: var(--ink);
   background: var(--background);
 }
@@ -67,8 +75,8 @@
 :root[data-theme="apdo"] .session-icon { background: #42272c; color: #db6870; border-radius: 10px; }
 
 /* Workout, routines, and sets */
-:root[data-theme="apdo"] :is(.start-option, .routine-select-card, .exercise-card, .routine-card, .routine-exercise-row, .exercise-list-card, .detail-exercise) { background: var(--surface); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow); }
-:root[data-theme="apdo"] :is(.start-option, .routine-select-card, .exercise-card, .routine-card, .routine-exercise-row) { border-radius: 16px; }
+:root[data-theme="apdo"] :is(.start-option, .routine-select-card, .exercise-card, .routine-card, .routine-exercise-row, .routine-exercise-card, .exercise-list-card, .detail-exercise) { background: var(--surface); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow); }
+:root[data-theme="apdo"] :is(.start-option, .routine-select-card, .exercise-card, .routine-card, .routine-exercise-row, .routine-exercise-card) { border-radius: 16px; }
 :root[data-theme="apdo"] :is(.start-option, .routine-select-card, .routine-card, .exercise-list-card):hover { background: var(--raised); border-color: #a24149; box-shadow: 0 16px 34px #0009; }
 :root[data-theme="apdo"] .primary-option { background: linear-gradient(145deg, #392327, #252528); border-color: #754047; }
 :root[data-theme="apdo"] .primary-option:hover { background: linear-gradient(145deg, #4a292e, #303034); }
@@ -89,8 +97,9 @@
 :root[data-theme="apdo"] .set-row.completed > b { color: #f0d9d5; }
 :root[data-theme="apdo"] .set-row label input,
 :root[data-theme="apdo"] .routine-exercise-row label input,
+:root[data-theme="apdo"] .routine-set-row label input,
 :root[data-theme="apdo"] :is(.auth-form input, .large-input) { background: var(--deep); color: var(--ink); border-color: #555055; border-radius: 9px; }
-:root[data-theme="apdo"] :is(.set-row label input, .routine-exercise-row label input, .auth-form input, .large-input):focus { border-color: #bd4b54; box-shadow: 0 0 0 3px #ad394333; }
+:root[data-theme="apdo"] :is(.set-row label input, .routine-exercise-row label input, .routine-set-row label input, .auth-form input, .large-input):focus { border-color: #bd4b54; box-shadow: 0 0 0 3px var(--focus-ring); }
 :root[data-theme="apdo"] input::placeholder { color: #999296; }
 :root[data-theme="apdo"] .check-button { background: var(--deep); border-color: #78666b; border-radius: 8px; }
 :root[data-theme="apdo"] .check-button.checked { background: #a72c34; border-color: #c44b54; color: #fff4ed; }

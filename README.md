@@ -37,4 +37,4 @@ Workout Log는 개인 운동 루틴과 수행 기록을 관리하기 위해 만�
 ## 접속
 
 서비스 운영 시간은 **매일 09:00 ~ 21:00 (KST)** 입니다.
-http://<Elastic-IP>
+http://<Elastic-IP>te

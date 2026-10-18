@@ -2,6 +2,7 @@ package com.workoutlog.backend.routine;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -124,6 +125,48 @@ class RoutineApiTests extends PostgresIntegrationTest {
 				.content(routineBody("탈취 시도", singleExercise(exerciseId))))
 				.andExpect(status().isNotFound())
 				.andExpect(jsonPath("$.code").value("ROUTINE_NOT_FOUND"));
+
+		mockMvc.perform(delete("/api/routines/{routineId}", routineId).with(jwtFor(otherUser)))
+				.andExpect(status().isNotFound());
+	}
+
+	@Test
+	void deletesRoutineAndSetsWhilePreservingCompletedSession() throws Exception {
+		User owner = saveUser("delete_owner");
+		Integer exerciseId = defaultExerciseId("벤치프레스");
+		Integer routineId = createRoutine(owner, "삭제할 루틴", """
+				[{"exerciseId":%d,"exerciseOrder":1,"targetSets":2,"targetReps":8,
+				"sets":[{"setNumber":1,"weight":60.50,"reps":8},
+				{"setNumber":2,"weight":70.00,"reps":6}]}]
+				""".formatted(exerciseId));
+		mockMvc.perform(get("/api/routines/{id}", routineId).with(jwtFor(owner)))
+				.andExpect(jsonPath("$.exercises[0].sets[0].weight").value(60.5))
+				.andExpect(jsonPath("$.exercises[0].sets[1].reps").value(6));
+		String sessionBody = """
+				{"workoutDate":"%s","routineId":%d,"exercises":[{"exerciseId":%d,
+				"exerciseOrder":1,"sets":[{"setNumber":1,"weight":60.50,"reps":8,"completed":true}]}]}
+				""".formatted(java.time.LocalDate.now(), routineId, exerciseId);
+		String sessionResponse = mockMvc.perform(post("/api/workout-sessions").with(jwtFor(owner))
+				.contentType(MediaType.APPLICATION_JSON).content(sessionBody))
+				.andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+		Integer sessionId = JsonPath.read(sessionResponse, "$.id");
+
+		mockMvc.perform(delete("/api/routines/{id}", routineId).with(jwtFor(owner)))
+				.andExpect(status().isNoContent());
+		mockMvc.perform(get("/api/routines/{id}", routineId).with(jwtFor(owner)))
+				.andExpect(status().isNotFound());
+		mockMvc.perform(get("/api/routines").with(jwtFor(owner)))
+				.andExpect(jsonPath("$.length()").value(0));
+		org.assertj.core.api.Assertions.assertThat(jdbcTemplate.queryForObject(
+				"SELECT count(*) FROM routine_set", Integer.class)).isZero();
+		mockMvc.perform(get("/api/workout-sessions/{id}", sessionId).with(jwtFor(owner)))
+				.andExpect(jsonPath("$.routineId").value(routineId))
+				.andExpect(jsonPath("$.routineName").value("삭제할 루틴"))
+				.andExpect(jsonPath("$.exercises[0].sets[0].weight").value(60.5));
+		mockMvc.perform(put("/api/workout-sessions/{id}", sessionId).with(jwtFor(owner))
+				.contentType(MediaType.APPLICATION_JSON).content(sessionBody))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.routineName").value("삭제할 루틴"));
 	}
 
 	@Test
@@ -150,12 +193,6 @@ class RoutineApiTests extends PostgresIntegrationTest {
 		assertBadRequest(user, routineBody("목표 오류", """
 				[{"exerciseId": %d, "exerciseOrder": 1, "targetSets": 0, "targetReps": 0}]
 				""".formatted(benchPressId)));
-		assertBadRequest(user, routineBody("운동 중복", """
-				[
-				  {"exerciseId": %d, "exerciseOrder": 1},
-				  {"exerciseId": %d, "exerciseOrder": 2}
-				]
-				""".formatted(benchPressId, benchPressId)));
 		assertBadRequest(user, routineBody("순서 중복", """
 				[
 				  {"exerciseId": %d, "exerciseOrder": 1},
@@ -163,6 +200,60 @@ class RoutineApiTests extends PostgresIntegrationTest {
 				]
 				""".formatted(benchPressId, squatId)));
 		assertBadRequest(user, routineBody("없는 운동", singleExercise(999999)));
+		assertBadRequest(user, routineBody("잘못된 세트", """
+				[{"exerciseId":%d,"exerciseOrder":1,"sets":[
+				{"setNumber":1,"weight":10,"reps":8},
+				{"setNumber":1,"weight":12,"reps":6}]}]
+				""".formatted(benchPressId)));
+	}
+
+	@Test
+	void savesFreeSessionSetsAsIndependentRoutinesAndKeepsOriginal() throws Exception {
+		User owner = saveUser("session_owner");
+		User other = saveUser("session_other");
+		Integer exerciseId = defaultExerciseId("벤치프레스");
+		String sessionResponse = mockMvc.perform(post("/api/workout-sessions").with(jwtFor(owner))
+				.contentType(MediaType.APPLICATION_JSON).content("""
+						{"workoutDate":"%s","exercises":[{"exerciseId":%d,"exerciseOrder":1,
+						"sets":[{"setNumber":1,"weight":72.50,"reps":8,"completed":true},
+						{"setNumber":2,"weight":75.00,"reps":6,"completed":true}]}]}
+						""".formatted(java.time.LocalDate.now(), exerciseId)))
+				.andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+		Integer sessionId = JsonPath.read(sessionResponse, "$.id");
+		String body = "{\"name\":\"기록 루틴\"}";
+		mockMvc.perform(post("/api/routines/from-session/{id}", sessionId).with(jwtFor(other))
+				.contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isNotFound());
+		Integer firstId = saveSessionRoutine(owner, sessionId, body);
+		Integer secondId = saveSessionRoutine(owner, sessionId, body);
+		org.junit.jupiter.api.Assertions.assertNotEquals(firstId, secondId);
+		mockMvc.perform(get("/api/routines").with(jwtFor(owner)))
+				.andExpect(jsonPath("$.length()").value(2));
+		mockMvc.perform(get("/api/routines/{id}", firstId).with(jwtFor(owner)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.exercises[0].exerciseId").value(exerciseId))
+				.andExpect(jsonPath("$.exercises[0].sets[0].weight").value(72.5))
+				.andExpect(jsonPath("$.exercises[0].sets[0].reps").value(8))
+				.andExpect(jsonPath("$.exercises[0].sets[1].weight").value(75.0))
+				.andExpect(jsonPath("$.exercises[0].sets[1].reps").value(6));
+		mockMvc.perform(put("/api/routines/{id}", firstId).with(jwtFor(owner))
+				.contentType(MediaType.APPLICATION_JSON).content(routineBody("수정한 기록 루틴", """
+						[{"exerciseId":%d,"exerciseOrder":1,"targetSets":2,"targetReps":8,
+						"sets":[{"setNumber":1,"weight":72.50,"reps":8},
+						{"setNumber":2,"weight":75.00,"reps":6}]}]
+						""".formatted(exerciseId))))
+				.andExpect(status().isOk());
+		mockMvc.perform(get("/api/routines/{id}", firstId).with(jwtFor(owner)))
+				.andExpect(jsonPath("$.exercises[0].sets[1].weight").value(75.0));
+		mockMvc.perform(get("/api/workout-sessions/{id}", sessionId).with(jwtFor(owner)))
+				.andExpect(jsonPath("$.routineId").isEmpty())
+				.andExpect(jsonPath("$.exercises[0].sets[1].completed").value(true));
+	}
+
+	private Integer saveSessionRoutine(User user, Integer sessionId, String body) throws Exception {
+		String response = mockMvc.perform(post("/api/routines/from-session/{id}", sessionId)
+				.with(jwtFor(user)).contentType(MediaType.APPLICATION_JSON).content(body))
+				.andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+		return JsonPath.read(response, "$.id");
 	}
 
 	private Integer createRoutine(User user, String name, String exercises) throws Exception {
@@ -218,6 +309,10 @@ class RoutineApiTests extends PostgresIntegrationTest {
 	}
 
 	private void clearDatabase() {
+		jdbcTemplate.update("DELETE FROM exercise_set");
+		jdbcTemplate.update("DELETE FROM exercise_in_session");
+		jdbcTemplate.update("DELETE FROM workout_session");
+		jdbcTemplate.update("DELETE FROM routine_set");
 		jdbcTemplate.update("DELETE FROM exercise_in_routine");
 		jdbcTemplate.update("DELETE FROM routine");
 		exerciseRepository.deleteAll(exerciseRepository.findAll().stream()

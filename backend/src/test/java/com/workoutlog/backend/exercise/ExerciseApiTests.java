@@ -4,6 +4,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -97,6 +98,30 @@ class ExerciseApiTests extends PostgresIntegrationTest {
 		mockMvc.perform(get("/api/exercises").with(jwtFor(currentUser)))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$[?(@.name == '해머 컬' && @.custom == true)]").exists());
+	}
+
+	@Test
+	void editsOnlyOwnedCustomExerciseWithoutChangingItsId() throws Exception {
+		User owner = saveUser("exercise_editor");
+		User other = saveUser("exercise_other");
+		Exercise custom = exerciseRepository.save(new Exercise("기존 운동", BodyPart.ARMS, owner.getId()));
+		Integer defaultId = defaultExerciseId("벤치프레스");
+		String body = """
+				{"name":"수정 운동","bodyPart":"BACK"}
+				""";
+		mockMvc.perform(put("/api/exercises/{id}", custom.getId()).with(jwtFor(owner))
+				.contentType(MediaType.APPLICATION_JSON).content(body))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.id").value(custom.getId()))
+				.andExpect(jsonPath("$.name").value("수정 운동"))
+				.andExpect(jsonPath("$.bodyPart").value("BACK"));
+		mockMvc.perform(put("/api/exercises/{id}", custom.getId()).with(jwtFor(other))
+				.contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isNotFound());
+		mockMvc.perform(put("/api/exercises/{id}", defaultId).with(jwtFor(owner))
+				.contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isNotFound());
+		mockMvc.perform(put("/api/exercises/{id}", custom.getId()).with(jwtFor(owner))
+				.contentType(MediaType.APPLICATION_JSON).content("{\"name\":\" \",\"bodyPart\":\"ARMS\"}"))
+				.andExpect(status().isBadRequest());
 	}
 
 	@Test
@@ -236,6 +261,7 @@ class ExerciseApiTests extends PostgresIntegrationTest {
 		jdbcTemplate.update("DELETE FROM exercise_set");
 		jdbcTemplate.update("DELETE FROM exercise_in_session");
 		jdbcTemplate.update("DELETE FROM workout_session");
+		jdbcTemplate.update("DELETE FROM routine_set");
 		jdbcTemplate.update("DELETE FROM exercise_in_routine");
 		jdbcTemplate.update("DELETE FROM routine");
 		exerciseRepository.deleteAll(exerciseRepository.findAll().stream()

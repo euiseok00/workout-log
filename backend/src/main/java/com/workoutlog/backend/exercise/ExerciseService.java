@@ -47,4 +47,13 @@ public class ExerciseService {
 		Exercise exercise = exerciseRepository.save(new Exercise(request.name(), request.bodyPart(), userId));
 		return ExerciseResponse.from(exercise);
 	}
+
+	@Transactional
+	public ExerciseResponse updateExercise(Integer exerciseId, ExerciseRequest request, Integer userId) {
+		Exercise exercise = exerciseRepository.findById(exerciseId)
+				.filter(value -> userId.equals(value.getUserId()))
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+		exercise.update(request.name(), request.bodyPart());
+		return ExerciseResponse.from(exercise);
+	}
 }

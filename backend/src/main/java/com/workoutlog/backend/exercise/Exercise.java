@@ -46,6 +46,11 @@ public class Exercise {
 		return id;
 	}
 
+	public void update(String name, BodyPart bodyPart) {
+		this.name = name;
+		this.bodyPart = bodyPart;
+	}
+
 	public String getName() {
 		return name;
 	}

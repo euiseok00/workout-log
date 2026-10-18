@@ -38,20 +38,18 @@ public class WorkoutSessionService {
 	public WorkoutSessionResponse createSession(WorkoutSessionRequest request, Integer userId) {
 		Routine routine = validateAndLoadRoutine(request.routineId(), userId);
 		Map<Integer, Exercise> exercises = validateAndLoadExercises(request.exercises(), userId);
-		WorkoutSession session = new WorkoutSession(userId, request.routineId(), request.workoutDate());
+		WorkoutSession session = new WorkoutSession(userId, request.routineId(),
+				routine == null ? null : routine.getName(), request.workoutDate());
 		addExercises(session, request.exercises(), exercises);
-		return WorkoutSessionResponse.from(workoutSessionRepository.save(session),
-				routine == null ? null : routine.getName());
+		return WorkoutSessionResponse.from(workoutSessionRepository.save(session), session.getRoutineName());
 	}
 
 	@Transactional(readOnly = true)
 	public List<WorkoutSessionResponse> getSessions(Integer userId, LocalDate from, LocalDate to) {
 		validateDateRange(from, to);
 		List<WorkoutSession> sessions = workoutSessionRepository.findAllInDateRange(userId, from, to);
-		Map<Integer, String> routineNames = loadRoutineNames(sessions, userId);
 		return sessions.stream()
-				.map(session -> WorkoutSessionResponse.from(session,
-						session.getRoutineId() == null ? null : routineNames.get(session.getRoutineId())))
+				.map(session -> WorkoutSessionResponse.from(session, session.getRoutineName()))
 				.toList();
 	}
 
@@ -64,19 +62,23 @@ public class WorkoutSessionService {
 	@Transactional(readOnly = true)
 	public WorkoutSessionResponse getSession(Integer sessionId, Integer userId) {
 		WorkoutSession session = findOwnedSession(sessionId, userId);
-		return WorkoutSessionResponse.from(session, routineName(session.getRoutineId(), userId));
+		return WorkoutSessionResponse.from(session, session.getRoutineName());
 	}
 
 	@Transactional
 	public WorkoutSessionResponse updateSession(Integer sessionId, WorkoutSessionRequest request, Integer userId) {
 		WorkoutSession session = findOwnedSession(sessionId, userId);
-		Routine routine = validateAndLoadRoutine(request.routineId(), userId);
+		Routine routine = request.routineId() != null && request.routineId().equals(session.getRoutineId())
+				&& session.getRoutineName() != null
+				? null : validateAndLoadRoutine(request.routineId(), userId);
 		Map<Integer, Exercise> exercises = validateAndLoadExercises(request.exercises(), userId);
-		session.update(request.routineId(), request.workoutDate());
+		String routineName = routine == null && request.routineId() != null
+				? session.getRoutineName() : routine == null ? null : routine.getName();
+		session.update(request.routineId(), routineName, request.workoutDate());
 		session.clearExercises();
 		workoutSessionRepository.flush();
 		addExercises(session, request.exercises(), exercises);
-		return WorkoutSessionResponse.from(session, routine == null ? null : routine.getName());
+		return WorkoutSessionResponse.from(session, session.getRoutineName());
 	}
 
 	@Transactional
@@ -95,24 +97,6 @@ public class WorkoutSessionService {
 		}
 		return routineRepository.findByIdAndUserId(routineId, userId)
 				.orElseThrow(() -> new RequestValidationException("routineId", "사용할 수 없는 루틴입니다."));
-	}
-
-	private String routineName(Integer routineId, Integer userId) {
-		return routineId == null ? null : routineRepository.findByIdAndUserId(routineId, userId)
-				.map(Routine::getName)
-				.orElse(null);
-	}
-
-	private Map<Integer, String> loadRoutineNames(List<WorkoutSession> sessions, Integer userId) {
-		HashSet<Integer> routineIds = sessions.stream()
-				.map(WorkoutSession::getRoutineId)
-				.filter(java.util.Objects::nonNull)
-				.collect(Collectors.toCollection(HashSet::new));
-		if (routineIds.isEmpty()) {
-			return Map.of();
-		}
-		return routineRepository.findAllByIdInAndUserId(routineIds, userId).stream()
-				.collect(Collectors.toMap(Routine::getId, Routine::getName));
 	}
 
 	private Map<Integer, Exercise> validateAndLoadExercises(List<ExerciseRequest> requests, Integer userId) {

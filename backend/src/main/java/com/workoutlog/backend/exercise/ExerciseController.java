@@ -8,6 +8,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -45,5 +46,11 @@ public class ExerciseController {
 	public ExerciseResponse createExercise(@Valid @RequestBody ExerciseRequest request,
 			@AuthenticationPrincipal Jwt jwt) {
 		return exerciseService.createExercise(request, Integer.valueOf(jwt.getSubject()));
+	}
+
+	@PutMapping("/{exerciseId}")
+	public ExerciseResponse updateExercise(@PathVariable Integer exerciseId,
+			@Valid @RequestBody ExerciseRequest request, @AuthenticationPrincipal Jwt jwt) {
+		return exerciseService.updateExercise(exerciseId, request, Integer.valueOf(jwt.getSubject()));
 	}
 }

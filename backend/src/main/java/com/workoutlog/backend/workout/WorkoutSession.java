@@ -28,6 +28,9 @@ public class WorkoutSession {
 	@Column(name = "routine_id")
 	private Integer routineId;
 
+	@Column(name = "routine_name", length = 100)
+	private String routineName;
+
 	@Column(name = "workout_date", nullable = false)
 	private LocalDate workoutDate;
 
@@ -38,14 +41,16 @@ public class WorkoutSession {
 	protected WorkoutSession() {
 	}
 
-	public WorkoutSession(Integer userId, Integer routineId, LocalDate workoutDate) {
+	public WorkoutSession(Integer userId, Integer routineId, String routineName, LocalDate workoutDate) {
 		this.userId = userId;
 		this.routineId = routineId;
+		this.routineName = routineName;
 		this.workoutDate = workoutDate;
 	}
 
-	public void update(Integer routineId, LocalDate workoutDate) {
+	public void update(Integer routineId, String routineName, LocalDate workoutDate) {
 		this.routineId = routineId;
+		this.routineName = routineName;
 		this.workoutDate = workoutDate;
 	}
 
@@ -67,6 +72,10 @@ public class WorkoutSession {
 
 	public Integer getRoutineId() {
 		return routineId;
+	}
+
+	public String getRoutineName() {
+		return routineName;
 	}
 
 	public LocalDate getWorkoutDate() {

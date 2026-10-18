@@ -21,6 +21,14 @@ export function volumeChange(current, previous) {
   return `${percent > 0 ? '+' : ''}${formatNumber(percent, 1)}%`
 }
 
+export function volumeDifference(current, previous) {
+  const currentVolume = Number(current || 0)
+  const previousVolume = Number(previous || 0)
+  if (currentVolume === 0 && previousVolume === 0) return '—'
+  const difference = currentVolume - previousVolume
+  return `${difference > 0 ? '+' : ''}${formatNumber(difference, 2)} kg`
+}
+
 export function formatDate(value, withYear = true) {
   if (!value) return ''
   const [year, month, day] = value.split('-').map(Number)
