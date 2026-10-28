@@ -27,15 +27,8 @@ export default function WorkoutDetail({ id, navigate, auth }) {
   const loadWorkout = async () => {
     const key = `workout_draft:${auth.user.id}`
     if (localStorage.getItem(key) && !window.confirm('작성 중인 운동을 이 기록으로 교체할까요?')) return
-    let routineId = session.routineId
-    let routineName = session.routineName
-    if (routineId != null) {
-      try { await api(`/api/routines/${routineId}`) }
-      catch (requestError) {
-        if (requestError.status !== 404) { window.alert(requestError.message); return }
-        routineId = null; routineName = null
-      }
-    }
+    const { routineId } = session
+    const routineName = routineId == null ? null : session.routineName
     localStorage.setItem(key, JSON.stringify({ workoutDate: todayString(), routineId, routineName, exercises: session.exercises.map((exercise, exerciseIndex) => ({ ...exercise, exerciseOrder: exerciseIndex + 1, sets: exercise.sets.map((set, setIndex) => ({ ...set, setNumber: setIndex + 1, completed: false })) })), updatedAt: new Date().toISOString() }))
     triggerCharacter(CHARACTER_EVENTS.RECORD_LOAD)
     navigate('/workout')

@@ -2,6 +2,7 @@ package com.workoutlog.backend.statistics;
 
 import java.time.LocalDate;
 
+import com.workoutlog.backend.statistics.dto.StatisticsResponse;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;

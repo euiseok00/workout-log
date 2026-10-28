@@ -20,20 +20,20 @@ public record WorkoutSessionRequest(
 		@Positive(message = "루틴 ID는 양수여야 합니다.")
 		Integer routineId,
 		@NotEmpty(message = "운동은 하나 이상이어야 합니다.")
-		List<@NotNull(message = "운동 정보는 필수입니다.") @Valid ExerciseRequest> exercises) {
+		List<@NotNull(message = "운동 정보는 필수입니다.") @Valid SessionExerciseRequest> exercises) {
 
-	public record ExerciseRequest(
+	public record SessionExerciseRequest(
 			@NotNull(message = "운동 ID는 필수입니다.")
 			@Positive(message = "운동 ID는 양수여야 합니다.")
 			Integer exerciseId,
 			@NotNull(message = "운동 순서는 필수입니다.")
 			@Positive(message = "운동 순서는 양수여야 합니다.")
 			Integer exerciseOrder,
-			@NotNull(message = "세트 목록은 필수입니다.")
-			List<@NotNull(message = "세트 정보는 필수입니다.") @Valid SetRequest> sets) {
+			@NotEmpty(message = "세트는 하나 이상이어야 합니다.")
+			List<@NotNull(message = "세트 정보는 필수입니다.") @Valid SessionSetRequest> sets) {
 	}
 
-	public record SetRequest(
+	public record SessionSetRequest(
 			@NotNull(message = "세트 번호는 필수입니다.")
 			@Positive(message = "세트 번호는 1 이상이어야 합니다.")
 			Integer setNumber,

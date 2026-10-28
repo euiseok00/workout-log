@@ -131,6 +131,20 @@ class RoutineApiTests extends PostgresIntegrationTest {
 	}
 
 	@Test
+	void derivesTargetsFromSetsWhenSetsAreGiven() throws Exception {
+		User owner = saveUser("derived_targets");
+		Integer exerciseId = defaultExerciseId("벤치프레스");
+		Integer routineId = createRoutine(owner, "파생 루틴", """
+				[{"exerciseId":%d,"exerciseOrder":1,"targetSets":9,"targetReps":1,
+				"sets":[{"setNumber":2,"weight":70.00,"reps":6},
+				{"setNumber":1,"weight":60.50,"reps":8}]}]
+				""".formatted(exerciseId));
+		mockMvc.perform(get("/api/routines/{id}", routineId).with(jwtFor(owner)))
+				.andExpect(jsonPath("$.exercises[0].targetSets").value(2))
+				.andExpect(jsonPath("$.exercises[0].targetReps").value(8));
+	}
+
+	@Test
 	void deletesRoutineAndSetsWhilePreservingCompletedSession() throws Exception {
 		User owner = saveUser("delete_owner");
 		Integer exerciseId = defaultExerciseId("벤치프레스");
@@ -160,11 +174,11 @@ class RoutineApiTests extends PostgresIntegrationTest {
 		org.assertj.core.api.Assertions.assertThat(jdbcTemplate.queryForObject(
 				"SELECT count(*) FROM routine_set", Integer.class)).isZero();
 		mockMvc.perform(get("/api/workout-sessions/{id}", sessionId).with(jwtFor(owner)))
-				.andExpect(jsonPath("$.routineId").value(routineId))
+				.andExpect(jsonPath("$.routineId").value(org.hamcrest.Matchers.nullValue()))
 				.andExpect(jsonPath("$.routineName").value("삭제할 루틴"))
 				.andExpect(jsonPath("$.exercises[0].sets[0].weight").value(60.5));
 		mockMvc.perform(put("/api/workout-sessions/{id}", sessionId).with(jwtFor(owner))
-				.contentType(MediaType.APPLICATION_JSON).content(sessionBody))
+				.contentType(MediaType.APPLICATION_JSON).content(sessionBody.replace("\"routineId\":" + routineId, "\"routineId\":null")))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.routineName").value("삭제할 루틴"));
 	}

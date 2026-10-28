@@ -143,7 +143,7 @@ class WorkoutSessionApiTests extends PostgresIntegrationTest {
 						  {
 						    "exerciseId": %d,
 						    "exerciseOrder": 1,
-						    "sets": []
+						    "sets": [{"setNumber": 1, "weight": 0, "reps": 10, "completed": true}]
 						  }
 						]
 						""".formatted(customExercise.getId(), squatId))))
@@ -160,13 +160,43 @@ class WorkoutSessionApiTests extends PostgresIntegrationTest {
 		mockMvc.perform(get("/api/workout-sessions/{sessionId}", sessionId).with(jwtFor(user)))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.id").value(sessionId))
-				.andExpect(jsonPath("$.exercises[0].sets").isEmpty())
+				.andExpect(jsonPath("$.exercises[0].sets.length()").value(1))
 				.andExpect(jsonPath("$.exercises[1].sets[0].weight").value(10.0))
 				.andExpect(jsonPath("$.exercises[1].sets[0].reps").value(10))
 				.andExpect(jsonPath("$.exercises[1].sets[0].completed").value(false))
 				.andExpect(jsonPath("$.exercises[1].sets[1].weight").value(12.5))
 				.andExpect(jsonPath("$.exercises[1].sets[1].reps").value(8))
 				.andExpect(jsonPath("$.exercises[1].sets[1].completed").value(true));
+	}
+
+	@Test
+	void keepsRoutineNameWhenRoutineIsDeleted() throws Exception {
+		User user = saveUser("session_routine_gone");
+		Routine routine = routineRepository.save(new Routine(user.getId(), "사라질 루틴"));
+		Integer exerciseId = defaultExerciseId("벤치프레스");
+		Integer sessionId = createSession(user, LocalDate.now(), routine.getId(), singleExercise(exerciseId));
+
+		mockMvc.perform(delete("/api/routines/{routineId}", routine.getId()).with(jwtFor(user)))
+				.andExpect(status().isNoContent());
+
+		mockMvc.perform(get("/api/workout-sessions/{sessionId}", sessionId).with(jwtFor(user)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.routineId").value(nullValue()))
+				.andExpect(jsonPath("$.routineName").value("사라질 루틴"));
+
+		mockMvc.perform(put("/api/workout-sessions/{sessionId}", sessionId)
+				.with(jwtFor(user))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(sessionBody(LocalDate.now(), null, singleExercise(exerciseId))))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.routineId").value(nullValue()))
+				.andExpect(jsonPath("$.routineName").value("사라질 루틴"));
+
+		mockMvc.perform(post("/api/routines/from-session/{sessionId}", sessionId)
+				.with(jwtFor(user))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"name\":\"다시 만든 루틴\"}"))
+				.andExpect(status().isCreated());
 	}
 
 	@Test
@@ -235,12 +265,15 @@ class WorkoutSessionApiTests extends PostgresIntegrationTest {
 		assertBadRequest(user, sessionBody(LocalDate.now(), null, "[]"));
 		assertBadRequest(user, sessionBody(LocalDate.now(), null, "[null]"));
 		assertBadRequest(user, sessionBody(LocalDate.now(), null, """
-				[{"exerciseId": %d, "exerciseOrder": 0, "sets": []}]
+				[{"exerciseId": %d, "exerciseOrder": 1, "sets": []}]
+				""".formatted(benchPressId)));
+		assertBadRequest(user, sessionBody(LocalDate.now(), null, """
+				[{"exerciseId": %d, "exerciseOrder": 0, "sets": [{"setNumber": 1, "weight": 0, "reps": 10, "completed": true}]}]
 				""".formatted(benchPressId)));
 		assertBadRequest(user, sessionBody(LocalDate.now(), null, """
 				[
-				  {"exerciseId": %d, "exerciseOrder": 1, "sets": []},
-				  {"exerciseId": %d, "exerciseOrder": 1, "sets": []}
+				  {"exerciseId": %d, "exerciseOrder": 1, "sets": [{"setNumber": 1, "weight": 0, "reps": 10, "completed": true}]},
+				  {"exerciseId": %d, "exerciseOrder": 1, "sets": [{"setNumber": 1, "weight": 0, "reps": 10, "completed": true}]}
 				]
 				""".formatted(benchPressId, squatId)));
 		assertBadRequest(user, sessionBody(LocalDate.now(), null, invalidSetExercise(benchPressId,
@@ -309,8 +342,8 @@ class WorkoutSessionApiTests extends PostgresIntegrationTest {
 	private String twoExercises(Integer firstExerciseId, Integer secondExerciseId) {
 		return """
 				[
-				  {"exerciseId": %d, "exerciseOrder": 1, "sets": []},
-				  {"exerciseId": %d, "exerciseOrder": 2, "sets": []}
+				  {"exerciseId": %d, "exerciseOrder": 1, "sets": [{"setNumber": 1, "weight": 0, "reps": 10, "completed": true}]},
+				  {"exerciseId": %d, "exerciseOrder": 2, "sets": [{"setNumber": 1, "weight": 0, "reps": 10, "completed": true}]}
 				]
 				""".formatted(firstExerciseId, secondExerciseId);
 	}

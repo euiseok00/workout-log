@@ -2,10 +2,8 @@ package com.workoutlog.backend.exercise;
 
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import com.workoutlog.backend.exercise.dto.ExerciseRequest;
 import com.workoutlog.backend.exercise.dto.ExerciseRecordResponse;
@@ -16,10 +14,13 @@ import com.workoutlog.backend.workout.WorkoutSessionRepository;
 public class ExerciseService {
 
 	private final ExerciseRepository exerciseRepository;
+	private final ExerciseLookup exerciseLookup;
 	private final WorkoutSessionRepository workoutSessionRepository;
 
-	public ExerciseService(ExerciseRepository exerciseRepository, WorkoutSessionRepository workoutSessionRepository) {
+	public ExerciseService(ExerciseRepository exerciseRepository, ExerciseLookup exerciseLookup,
+			WorkoutSessionRepository workoutSessionRepository) {
 		this.exerciseRepository = exerciseRepository;
+		this.exerciseLookup = exerciseLookup;
 		this.workoutSessionRepository = workoutSessionRepository;
 	}
 
@@ -32,9 +33,7 @@ public class ExerciseService {
 
 	@Transactional(readOnly = true)
 	public List<ExerciseRecordResponse> getExerciseRecords(Integer exerciseId, Integer userId) {
-		Exercise exercise = exerciseRepository.findById(exerciseId)
-				.filter(value -> value.getUserId() == null || value.getUserId().equals(userId))
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+		Exercise exercise = exerciseLookup.findVisible(exerciseId, userId);
 		return workoutSessionRepository.findAllInDateRange(userId, null, null).stream()
 				.flatMap(session -> session.getExercises().stream()
 						.filter(value -> value.getExercise().getId().equals(exerciseId))
@@ -52,7 +51,7 @@ public class ExerciseService {
 	public ExerciseResponse updateExercise(Integer exerciseId, ExerciseRequest request, Integer userId) {
 		Exercise exercise = exerciseRepository.findById(exerciseId)
 				.filter(value -> userId.equals(value.getUserId()))
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+				.orElseThrow(ExerciseNotFoundException::new);
 		exercise.update(request.name(), request.bodyPart());
 		return ExerciseResponse.from(exercise);
 	}

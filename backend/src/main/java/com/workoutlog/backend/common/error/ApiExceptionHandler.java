@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
+import com.workoutlog.backend.exercise.ExerciseNotFoundException;
 import com.workoutlog.backend.routine.RoutineNotFoundException;
 import com.workoutlog.backend.workout.WorkoutSessionNotFoundException;
 
@@ -58,6 +59,11 @@ public class ApiExceptionHandler {
 	@ExceptionHandler(InvalidCredentialsException.class)
 	ProblemDetail handleInvalidCredentials(InvalidCredentialsException exception, HttpServletRequest request) {
 		return problem(HttpStatus.UNAUTHORIZED, exception.getMessage(), "INVALID_CREDENTIALS", request, null);
+	}
+
+	@ExceptionHandler(ExerciseNotFoundException.class)
+	ProblemDetail handleExerciseNotFound(ExerciseNotFoundException exception, HttpServletRequest request) {
+		return problem(HttpStatus.NOT_FOUND, exception.getMessage(), "EXERCISE_NOT_FOUND", request, null);
 	}
 
 	@ExceptionHandler(RoutineNotFoundException.class)

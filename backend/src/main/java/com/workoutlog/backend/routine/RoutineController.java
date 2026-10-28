@@ -17,8 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.workoutlog.backend.routine.dto.RoutineRequest;
 import com.workoutlog.backend.routine.dto.RoutineResponse;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import com.workoutlog.backend.routine.dto.SessionRoutineRequest;
 
 import jakarta.validation.Valid;
 
@@ -46,8 +45,6 @@ public class RoutineController {
 		return routineService.createFromSession(sessionId, request.name(), Integer.valueOf(jwt.getSubject()));
 	}
 
-	public record SessionRoutineRequest(@NotBlank @Size(max = 100) String name) {
-	}
 
 	@GetMapping
 	public List<RoutineResponse> getRoutines(@AuthenticationPrincipal Jwt jwt) {

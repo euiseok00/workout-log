@@ -11,16 +11,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import com.workoutlog.backend.common.error.RequestValidationException;
+import com.workoutlog.backend.statistics.dto.StatisticsResponse;
 import com.workoutlog.backend.exercise.Exercise;
 import com.workoutlog.backend.exercise.BodyPart;
-import com.workoutlog.backend.exercise.ExerciseRepository;
-import com.workoutlog.backend.statistics.StatisticsResponse.History;
+import com.workoutlog.backend.exercise.ExerciseLookup;
+import com.workoutlog.backend.statistics.dto.StatisticsResponse.History;
 import com.workoutlog.backend.workout.ExerciseInSession;
 import com.workoutlog.backend.workout.ExerciseSet;
 import com.workoutlog.backend.workout.WorkoutSession;
@@ -30,12 +29,12 @@ import com.workoutlog.backend.workout.WorkoutSessionRepository;
 public class StatisticsService {
 
 	private final WorkoutSessionRepository workoutSessionRepository;
-	private final ExerciseRepository exerciseRepository;
+	private final ExerciseLookup exerciseLookup;
 
 	public StatisticsService(WorkoutSessionRepository workoutSessionRepository,
-			ExerciseRepository exerciseRepository) {
+			ExerciseLookup exerciseLookup) {
 		this.workoutSessionRepository = workoutSessionRepository;
-		this.exerciseRepository = exerciseRepository;
+		this.exerciseLookup = exerciseLookup;
 	}
 
 	@Transactional(readOnly = true)
@@ -96,9 +95,7 @@ public class StatisticsService {
 	@Transactional(readOnly = true)
 	public StatisticsResponse.Exercise getExerciseStatistics(Integer exerciseId, Integer userId, LocalDate from,
 			LocalDate to) {
-		Exercise exercise = exerciseRepository.findById(exerciseId)
-				.filter(value -> value.getUserId() == null || value.getUserId().equals(userId))
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+		Exercise exercise = exerciseLookup.findVisible(exerciseId, userId);
 		Map<LocalDate, Totals> history = new LinkedHashMap<>();
 		long sessionCount = 0;
 

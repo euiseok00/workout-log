@@ -1,4 +1,4 @@
-package com.workoutlog.backend.statistics;
+package com.workoutlog.backend.statistics.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

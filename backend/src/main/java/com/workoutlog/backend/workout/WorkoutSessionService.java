@@ -1,10 +1,8 @@
 package com.workoutlog.backend.workout;
 
 import java.time.LocalDate;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -12,12 +10,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.workoutlog.backend.common.error.RequestValidationException;
 import com.workoutlog.backend.exercise.Exercise;
-import com.workoutlog.backend.exercise.ExerciseRepository;
+import com.workoutlog.backend.exercise.ExerciseLookup;
 import com.workoutlog.backend.routine.Routine;
 import com.workoutlog.backend.routine.RoutineRepository;
 import com.workoutlog.backend.workout.dto.WorkoutSessionRequest;
-import com.workoutlog.backend.workout.dto.WorkoutSessionRequest.ExerciseRequest;
-import com.workoutlog.backend.workout.dto.WorkoutSessionRequest.SetRequest;
+import com.workoutlog.backend.workout.dto.WorkoutSessionRequest.SessionExerciseRequest;
+import com.workoutlog.backend.workout.dto.WorkoutSessionRequest.SessionSetRequest;
 import com.workoutlog.backend.workout.dto.WorkoutSessionResponse;
 
 @Service
@@ -25,13 +23,13 @@ public class WorkoutSessionService {
 
 	private final WorkoutSessionRepository workoutSessionRepository;
 	private final RoutineRepository routineRepository;
-	private final ExerciseRepository exerciseRepository;
+	private final ExerciseLookup exerciseLookup;
 
 	public WorkoutSessionService(WorkoutSessionRepository workoutSessionRepository, RoutineRepository routineRepository,
-			ExerciseRepository exerciseRepository) {
+			ExerciseLookup exerciseLookup) {
 		this.workoutSessionRepository = workoutSessionRepository;
 		this.routineRepository = routineRepository;
-		this.exerciseRepository = exerciseRepository;
+		this.exerciseLookup = exerciseLookup;
 	}
 
 	@Transactional
@@ -72,8 +70,14 @@ public class WorkoutSessionService {
 				&& session.getRoutineName() != null
 				? null : validateAndLoadRoutine(request.routineId(), userId);
 		Map<Integer, Exercise> exercises = validateAndLoadExercises(request.exercises(), userId);
-		String routineName = routine == null && request.routineId() != null
-				? session.getRoutineName() : routine == null ? null : routine.getName();
+		String routineName;
+		if (request.routineId() == null) {
+			// 삭제된 루틴의 기록(routineId null + 이름 남음)은 수정해도 이름을 유지한다.
+			routineName = session.getRoutineId() == null ? session.getRoutineName() : null;
+		}
+		else {
+			routineName = routine == null ? session.getRoutineName() : routine.getName();
+		}
 		session.update(request.routineId(), routineName, request.workoutDate());
 		session.clearExercises();
 		workoutSessionRepository.flush();
@@ -99,43 +103,25 @@ public class WorkoutSessionService {
 				.orElseThrow(() -> new RequestValidationException("routineId", "사용할 수 없는 루틴입니다."));
 	}
 
-	private Map<Integer, Exercise> validateAndLoadExercises(List<ExerciseRequest> requests, Integer userId) {
-		HashSet<Integer> exerciseIds = new HashSet<>();
-		HashSet<Integer> exerciseOrders = new HashSet<>();
-		for (ExerciseRequest request : requests) {
-			exerciseIds.add(request.exerciseId());
-			if (!exerciseOrders.add(request.exerciseOrder())) {
-				throw new RequestValidationException("exercises", "운동 순서는 중복될 수 없습니다.");
-			}
-			validateSetNumbers(request.sets());
+	private Map<Integer, Exercise> validateAndLoadExercises(List<SessionExerciseRequest> requests, Integer userId) {
+		RequestValidationException.requireDistinct(
+				requests.stream().map(SessionExerciseRequest::exerciseOrder).toList(), "exercises",
+				"운동 순서는 중복될 수 없습니다.");
+		for (SessionExerciseRequest request : requests) {
+			RequestValidationException.requireDistinct(
+					request.sets().stream().map(SessionSetRequest::setNumber).toList(), "sets",
+					"세트 번호는 중복될 수 없습니다.");
 		}
-
-		Map<Integer, Exercise> exercises = exerciseRepository.findAllById(exerciseIds).stream()
-				.collect(Collectors.toMap(Exercise::getId, Function.identity()));
-		for (Integer exerciseId : exerciseIds) {
-			Exercise exercise = exercises.get(exerciseId);
-			if (exercise == null || exercise.getUserId() != null && !exercise.getUserId().equals(userId)) {
-				throw new RequestValidationException("exercises", "사용할 수 없는 운동이 포함되어 있습니다.");
-			}
-		}
-		return exercises;
+		return exerciseLookup.loadUsable(
+				requests.stream().map(SessionExerciseRequest::exerciseId).collect(Collectors.toSet()), userId);
 	}
 
-	private void validateSetNumbers(List<SetRequest> sets) {
-		HashSet<Integer> setNumbers = new HashSet<>();
-		for (SetRequest set : sets) {
-			if (!setNumbers.add(set.setNumber())) {
-				throw new RequestValidationException("sets", "세트 번호는 중복될 수 없습니다.");
-			}
-		}
-	}
-
-	private void addExercises(WorkoutSession session, List<ExerciseRequest> requests,
+	private void addExercises(WorkoutSession session, List<SessionExerciseRequest> requests,
 			Map<Integer, Exercise> exercises) {
-		for (ExerciseRequest request : requests) {
+		for (SessionExerciseRequest request : requests) {
 			ExerciseInSession exerciseInSession = new ExerciseInSession(session,
 					exercises.get(request.exerciseId()), request.exerciseOrder());
-			for (SetRequest set : request.sets()) {
+			for (SessionSetRequest set : request.sets()) {
 				exerciseInSession.addSet(new ExerciseSet(exerciseInSession, set.setNumber(), set.weight(), set.reps(),
 						set.completed()));
 			}

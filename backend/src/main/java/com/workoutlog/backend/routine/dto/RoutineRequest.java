@@ -17,9 +17,9 @@ public record RoutineRequest(
 		@Size(max = 100, message = "루틴 이름은 100자 이하여야 합니다.")
 		String name,
 		@NotEmpty(message = "운동은 하나 이상이어야 합니다.")
-		List<@NotNull(message = "운동 정보는 필수입니다.") @Valid ExerciseRequest> exercises) {
+		List<@NotNull(message = "운동 정보는 필수입니다.") @Valid RoutineExerciseRequest> exercises) {
 
-	public record ExerciseRequest(
+	public record RoutineExerciseRequest(
 			@NotNull(message = "운동 ID는 필수입니다.")
 			@Positive(message = "운동 ID는 양수여야 합니다.")
 			Integer exerciseId,
@@ -30,10 +30,10 @@ public record RoutineRequest(
 			Integer targetSets,
 			@Positive(message = "목표 반복 수는 양수여야 합니다.")
 			Integer targetReps,
-			List<@NotNull @Valid SetRequest> sets) {
+			List<@NotNull @Valid RoutineSetRequest> sets) {
 	}
 
-	public record SetRequest(
+	public record RoutineSetRequest(
 			@NotNull @Positive Integer setNumber,
 			@NotNull @DecimalMin("0.00") @Digits(integer = 4, fraction = 2) BigDecimal weight,
 			@NotNull @jakarta.validation.constraints.PositiveOrZero Integer reps) {
