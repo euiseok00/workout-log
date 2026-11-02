@@ -2,7 +2,7 @@ package com.workoutlog.backend.auth.dto;
 
 import java.time.Instant;
 
-import com.workoutlog.backend.user.User;
+import com.workoutlog.backend.auth.User;
 
 public record AuthUserResponse(Integer id, String loginId, Instant createdAt) {
 

@@ -10,10 +10,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
-import com.workoutlog.backend.exercise.ExerciseNotFoundException;
-import com.workoutlog.backend.routine.RoutineNotFoundException;
-import com.workoutlog.backend.workout.WorkoutSessionNotFoundException;
-
 import jakarta.servlet.http.HttpServletRequest;
 
 @RestControllerAdvice
@@ -51,29 +47,9 @@ public class ApiExceptionHandler {
 		return problem;
 	}
 
-	@ExceptionHandler(DuplicateLoginIdException.class)
-	ProblemDetail handleDuplicateLoginId(DuplicateLoginIdException exception, HttpServletRequest request) {
-		return problem(HttpStatus.CONFLICT, exception.getMessage(), "LOGIN_ID_ALREADY_EXISTS", request, null);
-	}
-
-	@ExceptionHandler(InvalidCredentialsException.class)
-	ProblemDetail handleInvalidCredentials(InvalidCredentialsException exception, HttpServletRequest request) {
-		return problem(HttpStatus.UNAUTHORIZED, exception.getMessage(), "INVALID_CREDENTIALS", request, null);
-	}
-
-	@ExceptionHandler(ExerciseNotFoundException.class)
-	ProblemDetail handleExerciseNotFound(ExerciseNotFoundException exception, HttpServletRequest request) {
-		return problem(HttpStatus.NOT_FOUND, exception.getMessage(), "EXERCISE_NOT_FOUND", request, null);
-	}
-
-	@ExceptionHandler(RoutineNotFoundException.class)
-	ProblemDetail handleRoutineNotFound(RoutineNotFoundException exception, HttpServletRequest request) {
-		return problem(HttpStatus.NOT_FOUND, exception.getMessage(), "ROUTINE_NOT_FOUND", request, null);
-	}
-
-	@ExceptionHandler(WorkoutSessionNotFoundException.class)
-	ProblemDetail handleWorkoutSessionNotFound(WorkoutSessionNotFoundException exception, HttpServletRequest request) {
-		return problem(HttpStatus.NOT_FOUND, exception.getMessage(), "WORKOUT_SESSION_NOT_FOUND", request, null);
+	@ExceptionHandler(ApiException.class)
+	ProblemDetail handleApiException(ApiException exception, HttpServletRequest request) {
+		return problem(exception.getStatus(), exception.getMessage(), exception.getCode(), request, null);
 	}
 
 	private ProblemDetail problem(HttpStatus status, String detail, String code, HttpServletRequest request,

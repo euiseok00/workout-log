@@ -19,8 +19,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.workoutlog.backend.PostgresIntegrationTest;
-import com.workoutlog.backend.user.User;
-import com.workoutlog.backend.user.UserRepository;
+import com.workoutlog.backend.auth.User;
+import com.workoutlog.backend.auth.UserRepository;
 
 class ExerciseApiTests extends PostgresIntegrationTest {
 

@@ -1,4 +1,4 @@
-package com.workoutlog.backend.user;
+package com.workoutlog.backend.auth;
 
 import java.time.Instant;
 

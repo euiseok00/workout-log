@@ -1,4 +1,4 @@
-import { CHARACTER_EVENTS } from '../characterEvents'
+import { CHARACTER_EVENTS } from '../context/characterEvents'
 
 export default {
   [CHARACTER_EVENTS.DASHBOARD_ENTER]: '올라잇임돠.',

@@ -1,4 +1,4 @@
-import { CHARACTER_EVENTS } from '../characterEvents'
+import { CHARACTER_EVENTS } from '../context/characterEvents'
 import normal from './assets/alright-normal.webp'
 import fighting from './assets/alright-fighting.webp'
 import thumbsUp from './assets/alright-thumbs-up.webp'

@@ -18,12 +18,8 @@ import com.workoutlog.backend.auth.dto.AuthUserResponse;
 import com.workoutlog.backend.auth.dto.LoginIdAvailabilityResponse;
 import com.workoutlog.backend.auth.dto.LoginRequest;
 import com.workoutlog.backend.auth.dto.SignupRequest;
-import com.workoutlog.backend.common.error.DuplicateLoginIdException;
-import com.workoutlog.backend.common.error.InvalidCredentialsException;
 import com.workoutlog.backend.common.error.RequestValidationException;
-import com.workoutlog.backend.security.JwtProperties;
-import com.workoutlog.backend.user.User;
-import com.workoutlog.backend.user.UserRepository;
+import com.workoutlog.backend.auth.security.JwtProperties;
 
 @Service
 public class AuthService {

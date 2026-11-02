@@ -14,8 +14,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.workoutlog.backend.PostgresIntegrationTest;
-import com.workoutlog.backend.user.User;
-import com.workoutlog.backend.user.UserRepository;
 
 class AuthApiTests extends PostgresIntegrationTest {
 

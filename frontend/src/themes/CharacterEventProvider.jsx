@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import { CharacterEventContext } from './characterEventContext'
+import { CharacterEventContext } from './context/characterEventContext'
 
 export default function CharacterEventProvider({ children }) {
   const [activeEvent, setActiveEvent] = useState(null)

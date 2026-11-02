@@ -11,21 +11,21 @@ import com.workoutlog.backend.workout.ExerciseSet;
 import com.workoutlog.backend.workout.WorkoutSession;
 
 public record ExerciseRecordResponse(Integer sessionId, LocalDate workoutDate, Integer exerciseId,
-		String exerciseName, List<SetResponse> sets) {
+		String exerciseName, List<ExerciseRecordSetResponse> sets) {
 
 	public static ExerciseRecordResponse from(WorkoutSession session, ExerciseInSession exerciseInSession,
 			Exercise exercise) {
 		return new ExerciseRecordResponse(session.getId(), session.getWorkoutDate(), exercise.getId(),
 				exercise.getName(), exerciseInSession.getSets().stream()
 						.sorted(Comparator.comparing(ExerciseSet::getSetNumber))
-						.map(SetResponse::from)
+						.map(ExerciseRecordSetResponse::from)
 						.toList());
 	}
 
-	public record SetResponse(Integer setNumber, BigDecimal weight, Integer reps, boolean completed) {
+	public record ExerciseRecordSetResponse(Integer setNumber, BigDecimal weight, Integer reps, boolean completed) {
 
-		private static SetResponse from(ExerciseSet set) {
-			return new SetResponse(set.getSetNumber(), set.getWeight(), set.getReps(), set.isCompleted());
+		private static ExerciseRecordSetResponse from(ExerciseSet set) {
+			return new ExerciseRecordSetResponse(set.getSetNumber(), set.getWeight(), set.getReps(), set.isCompleted());
 		}
 	}
 }

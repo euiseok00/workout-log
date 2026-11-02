@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { themes } from './index'
-import { useCharacterEvent } from './characterEventContext'
-import { useTheme } from './themeContext'
+import { useCharacterEvent } from './context/characterEventContext'
+import { useTheme } from './context/themeContext'
 import './CharacterLayer.css'
 
 export default function CharacterLayer() {

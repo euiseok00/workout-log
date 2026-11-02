@@ -1,43 +1,11 @@
 import { useEffect, useState } from 'react'
-import { api } from './api'
-import ExercisePicker from './ExercisePicker'
-import { EmptyState, ErrorMessage, Icon, Link, Loading, Modal, PageHeader } from './ui'
-import { bodyPartLabel } from './utils'
+import { api } from '../../lib/api'
+import { EmptyState, ErrorMessage, Icon, Link, Loading, PageHeader } from '../../components/ui'
+import DeleteRoutineModal from './DeleteRoutineModal'
+import ExercisePicker from '../../components/ExercisePicker'
+import { bodyPartLabel } from '../../lib/utils'
 
-function DeleteRoutineModal({ routine, onClose, onDeleted }) {
-  const [deleting, setDeleting] = useState(false)
-  const [error, setError] = useState(null)
-  const remove = async () => {
-    setDeleting(true); setError(null)
-    try {
-      await api(`/api/routines/${routine.id}`, { method: 'DELETE' })
-      onDeleted()
-    } catch (requestError) { setError(requestError); setDeleting(false) }
-  }
-  return <Modal title="루틴 삭제" onClose={() => !deleting && onClose()}><p>“{routine.name}” 루틴을 삭제하시겠습니까? 완료한 운동 기록은 유지됩니다.</p><ErrorMessage error={error}/><div className="detail-delete-actions"><button type="button" className="secondary-button" onClick={onClose} disabled={deleting}>취소</button><button type="button" className="primary-button delete-confirm-button" onClick={remove} disabled={deleting}>{deleting ? '삭제 중...' : '삭제'}</button></div></Modal>
-}
-
-export function RoutineList({ navigate }) {
-  const [routines, setRoutines] = useState(null)
-  const [error, setError] = useState(null)
-  const [deleting, setDeleting] = useState(null)
-  useEffect(() => {
-    let active = true
-    api('/api/routines').then((value) => active && setRoutines(value)).catch((requestError) => active && setError(requestError))
-    return () => { active = false }
-  }, [])
-  return <div className="page">
-    <PageHeader eyebrow="MY ROUTINES" title="나만의 운동 루틴" action={<Link to="/routines/new" navigate={navigate} className="primary-button compact"><Icon name="plus" size={18}/> 새 루틴</Link>}/>
-    <ErrorMessage error={error}/>
-    {!routines ? <Loading/> : routines.length ? <div className="routine-list">{routines.map((routine, index) => <div className="routine-list-item" key={routine.id}>
-      <Link to={`/routines/${routine.id}`} navigate={navigate} className="routine-card"><div className={`routine-number color-${index % 4}`}>{String(index + 1).padStart(2, '0')}</div><div className="routine-card-main"><p className="eyebrow">{routine.exercises.length} EXERCISES</p><h2>{routine.name}</h2><div className="routine-tags">{routine.exercises.slice(0, 4).map((exercise, exerciseIndex) => <span key={exerciseIndex}>{exercise.name}</span>)}</div></div><div className="routine-card-meta"><b>{routine.exercises.reduce((sum, exercise) => sum + (exercise.sets?.length || exercise.targetSets || 0), 0)}</b><small>목표 세트</small><Icon name="chevron"/></div></Link>
-      <button type="button" className="routine-delete-button" onClick={() => setDeleting(routine)} aria-label={`${routine.name} 삭제`}>삭제</button>
-    </div>)}</div> : <EmptyState icon="routine" title="아직 만든 루틴이 없어요" description="자주 하는 운동을 묶어 빠르게 시작해보세요." action={<Link to="/routines/new" navigate={navigate} className="primary-button compact">첫 루틴 만들기</Link>}/>}
-    {deleting && <DeleteRoutineModal routine={deleting} onClose={() => setDeleting(null)} onDeleted={() => { setRoutines((current) => current.filter((routine) => routine.id !== deleting.id)); setDeleting(null) }}/>}
-  </div>
-}
-
-export function RoutineForm({ id, navigate }) {
+export default function RoutineForm({ id, navigate }) {
   const editing = Boolean(id)
   const [name, setName] = useState('')
   const [items, setItems] = useState([])

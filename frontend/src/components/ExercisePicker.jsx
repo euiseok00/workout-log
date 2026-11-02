@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Icon, Modal } from './ui'
-import { BODY_PARTS, bodyPartLabel } from './utils'
+import { BODY_PARTS, bodyPartLabel } from '../lib/utils'
 
 export default function ExercisePicker({ exercises, excluded = [], onSelect, onClose }) {
   const [filter, setFilter] = useState('ALL')

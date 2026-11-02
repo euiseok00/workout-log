@@ -1,4 +1,4 @@
-package com.workoutlog.backend.security;
+package com.workoutlog.backend.auth.security;
 
 import java.util.Base64;
 import java.util.List;

@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import './App.css'
-import { readAuth } from './api'
-import AuthPage from './AuthPage'
-import Dashboard from './Dashboard'
-import { ExerciseHistory, ExerciseList } from './Exercises'
-import Layout from './Layout'
-import { RoutineForm, RoutineList } from './Routines'
-import Workout from './Workout'
-import WorkoutDetail from './WorkoutDetail'
+import { readAuth } from './lib/api'
+import AuthPage from './pages/AuthPage'
+import Dashboard from './pages/Dashboard'
+import ExerciseHistory from './pages/exercises/ExerciseHistory'
+import ExerciseList from './pages/exercises/ExerciseList'
+import Layout from './components/Layout'
+import RoutineForm from './pages/routines/RoutineForm'
+import RoutineList from './pages/routines/RoutineList'
+import Workout from './pages/Workout'
+import WorkoutDetail from './pages/WorkoutDetail'
 
 export default function App() {
   const [path, setPath] = useState(window.location.pathname)

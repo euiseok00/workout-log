@@ -27,8 +27,8 @@ import com.workoutlog.backend.exercise.Exercise;
 import com.workoutlog.backend.exercise.ExerciseRepository;
 import com.workoutlog.backend.routine.Routine;
 import com.workoutlog.backend.routine.RoutineRepository;
-import com.workoutlog.backend.user.User;
-import com.workoutlog.backend.user.UserRepository;
+import com.workoutlog.backend.auth.User;
+import com.workoutlog.backend.auth.UserRepository;
 
 class WorkoutSessionApiTests extends PostgresIntegrationTest {
 

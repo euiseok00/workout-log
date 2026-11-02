@@ -1,4 +1,4 @@
-import { useTheme } from './themeContext'
+import { useTheme } from './context/themeContext'
 import './ThemeSelector.css'
 
 export default function ThemeSelector() {

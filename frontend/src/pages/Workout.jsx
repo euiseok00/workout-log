@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { api } from './api'
-import ExercisePicker from './ExercisePicker'
-import { useCharacterEvent } from './themes/characterEventContext'
-import { CHARACTER_EVENTS } from './themes/characterEvents'
-import { EmptyState, ErrorMessage, Icon, Loading, Modal, PageHeader } from './ui'
-import { bodyPartLabel, formatDate, todayString } from './utils'
-import { workoutRequest } from './workoutSession'
+import { api } from '../lib/api'
+import ExercisePicker from '../components/ExercisePicker'
+import { useCharacterEvent } from '../themes/context/characterEventContext'
+import { CHARACTER_EVENTS } from '../themes/context/characterEvents'
+import { EmptyState, ErrorMessage, Icon, Loading, Modal, PageHeader } from '../components/ui'
+import { bodyPartLabel, formatDate, todayString } from '../lib/utils'
+import { workoutRequest } from '../lib/workoutSession'
 
 function readDraft(key) {
   try { return JSON.parse(localStorage.getItem(key)) } catch { return null }

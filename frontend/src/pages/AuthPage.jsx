@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
-import { api, saveAuth } from './api'
-import { ErrorMessage, Icon, Link } from './ui'
+import { api, saveAuth } from '../lib/api'
+import { ErrorMessage, Icon, Link } from '../components/ui'
 
 export default function AuthPage({ mode, navigate, onAuth }) {
   const signup = mode === 'signup'

@@ -15,41 +15,41 @@ public record WorkoutSessionResponse(
 		LocalDate workoutDate,
 		Integer routineId,
 		String routineName,
-		List<ExerciseResponse> exercises) {
+		List<SessionExerciseResponse> exercises) {
 
 	public static WorkoutSessionResponse from(WorkoutSession session, String routineName) {
 		return new WorkoutSessionResponse(session.getId(), session.getWorkoutDate(), session.getRoutineId(), routineName,
 				session.getExercises().stream()
 						.sorted(Comparator.comparing(ExerciseInSession::getExerciseOrder))
-						.map(ExerciseResponse::from)
+						.map(SessionExerciseResponse::from)
 						.toList());
 	}
 
-	public record ExerciseResponse(
+	public record SessionExerciseResponse(
 			Integer exerciseId,
 			String name,
 			BodyPart bodyPart,
 			Integer exerciseOrder,
-			List<SetResponse> sets) {
+			List<SessionSetResponse> sets) {
 
-		static ExerciseResponse from(ExerciseInSession exercise) {
-			return new ExerciseResponse(exercise.getExercise().getId(), exercise.getExercise().getName(),
+		static SessionExerciseResponse from(ExerciseInSession exercise) {
+			return new SessionExerciseResponse(exercise.getExercise().getId(), exercise.getExercise().getName(),
 					exercise.getExercise().getBodyPart(), exercise.getExerciseOrder(),
 					exercise.getSets().stream()
 							.sorted(Comparator.comparing(ExerciseSet::getSetNumber))
-							.map(SetResponse::from)
+							.map(SessionSetResponse::from)
 							.toList());
 		}
 	}
 
-	public record SetResponse(
+	public record SessionSetResponse(
 			Integer setNumber,
 			BigDecimal weight,
 			Integer reps,
 			boolean completed) {
 
-		static SetResponse from(ExerciseSet set) {
-			return new SetResponse(set.getSetNumber(), set.getWeight(), set.getReps(), set.isCompleted());
+		static SessionSetResponse from(ExerciseSet set) {
+			return new SessionSetResponse(set.getSetNumber(), set.getWeight(), set.getReps(), set.isCompleted());
 		}
 	}
 }

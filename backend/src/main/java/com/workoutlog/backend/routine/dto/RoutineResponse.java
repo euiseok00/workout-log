@@ -13,7 +13,7 @@ import com.workoutlog.backend.routine.RoutineSet;
 public record RoutineResponse(
 		Integer id,
 		String name,
-		List<ExerciseResponse> exercises,
+		List<RoutineExerciseResponse> exercises,
 		Instant createdAt,
 		Instant updatedAt) {
 
@@ -21,31 +21,31 @@ public record RoutineResponse(
 		return new RoutineResponse(routine.getId(), routine.getName(),
 				routine.getExercises().stream()
 						.sorted(Comparator.comparing(ExerciseInRoutine::getExerciseOrder))
-						.map(ExerciseResponse::from)
+						.map(RoutineExerciseResponse::from)
 						.toList(),
 				routine.getCreatedAt(), routine.getUpdatedAt());
 	}
 
-	public record ExerciseResponse(
+	public record RoutineExerciseResponse(
 			Integer exerciseId,
 			String name,
 			BodyPart bodyPart,
 			Integer exerciseOrder,
 			Integer targetSets,
 			Integer targetReps,
-			List<SetResponse> sets) {
+			List<RoutineSetResponse> sets) {
 
-		static ExerciseResponse from(ExerciseInRoutine configuredExercise) {
-			return new ExerciseResponse(configuredExercise.getExercise().getId(),
+		static RoutineExerciseResponse from(ExerciseInRoutine configuredExercise) {
+			return new RoutineExerciseResponse(configuredExercise.getExercise().getId(),
 					configuredExercise.getExercise().getName(), configuredExercise.getExercise().getBodyPart(),
 					configuredExercise.getExerciseOrder(), configuredExercise.getTargetSets(),
 					configuredExercise.getTargetReps(), configuredExercise.getSets().stream()
 							.sorted(Comparator.comparing(RoutineSet::getSetNumber))
-							.map(set -> new SetResponse(set.getSetNumber(), set.getWeight(), set.getReps()))
+							.map(set -> new RoutineSetResponse(set.getSetNumber(), set.getWeight(), set.getReps()))
 							.toList());
 		}
 	}
 
-	public record SetResponse(Integer setNumber, BigDecimal weight, Integer reps) {
+	public record RoutineSetResponse(Integer setNumber, BigDecimal weight, Integer reps) {
 	}
 }

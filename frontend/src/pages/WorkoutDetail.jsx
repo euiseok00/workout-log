@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { api } from './api'
-import { useCharacterEvent } from './themes/characterEventContext'
-import { CHARACTER_EVENTS } from './themes/characterEvents'
-import { ErrorMessage, Icon, Link, Loading, Modal, PageHeader } from './ui'
-import { bodyPartLabel, formatDate, formatNumber, todayString } from './utils'
+import { api } from '../lib/api'
+import { useCharacterEvent } from '../themes/context/characterEventContext'
+import { CHARACTER_EVENTS } from '../themes/context/characterEvents'
+import { ErrorMessage, Icon, Link, Loading, Modal, PageHeader } from '../components/ui'
+import { bodyPartLabel, formatDate, formatNumber, todayString } from '../lib/utils'
 
 export default function WorkoutDetail({ id, navigate, auth }) {
   const { triggerCharacter } = useCharacterEvent()

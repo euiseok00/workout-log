@@ -1,6 +1,6 @@
-import { clearAuth } from './api'
-import { useCharacterEvent } from './themes/characterEventContext'
-import { CHARACTER_EVENTS } from './themes/characterEvents'
+import { clearAuth } from '../lib/api'
+import { useCharacterEvent } from '../themes/context/characterEventContext'
+import { CHARACTER_EVENTS } from '../themes/context/characterEvents'
 import { Icon, Link } from './ui'
 
 const NAV_ITEMS = [

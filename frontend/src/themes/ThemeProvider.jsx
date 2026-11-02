@@ -2,7 +2,7 @@ import { useLayoutEffect, useState } from 'react'
 import './allright/allright-theme.css'
 import './apdo/apdo-theme.css'
 import { themes } from './index'
-import { ThemeContext } from './themeContext'
+import { ThemeContext } from './context/themeContext'
 
 const STORAGE_KEY = 'workout_theme'
 const validTheme = (id) => Object.hasOwn(themes, id) ? id : 'default'

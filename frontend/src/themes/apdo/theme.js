@@ -1,4 +1,4 @@
-import { CHARACTER_EVENTS } from '../characterEvents'
+import { CHARACTER_EVENTS } from '../context/characterEvents'
 import normal from './assets/apdo-normal.webp'
 import fighting from './assets/apdo-fighting.webp'
 import thumbsUp from './assets/apdo-thumbs-up.webp'
