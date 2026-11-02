@@ -29,6 +29,10 @@ export function volumeDifference(current, previous) {
   return `${difference > 0 ? '+' : ''}${formatNumber(difference, 2)} kg`
 }
 
+export function isoDate(year, month, day) {
+  return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
 export function formatDate(value, withYear = true) {
   if (!value) return ''
   const [year, month, day] = value.split('-').map(Number)

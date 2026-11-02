@@ -159,7 +159,7 @@
 :root[data-theme="allright"] .progress-track { background: #48513e; }
 :root[data-theme="allright"] .detail-summary > div { border-color: #536346; }
 :root[data-theme="allright"] .exercise-card > header,
-:root[data-theme="allright"] :is(.set-row, .history-list article, .set-record-list p) { border-color: var(--line); }
+:root[data-theme="allright"] :is(.set-row, .record-table th, .record-table td) { border-color: var(--line); }
 :root[data-theme="allright"] .set-head { color: var(--khaki); }
 :root[data-theme="allright"] .set-row.completed { background: #2e3a29; }
 :root[data-theme="allright"] .set-row label input,
@@ -198,7 +198,7 @@
   background: #394530;
   color: var(--accent);
 }
-:root[data-theme="allright"] .set-record-list p.completed i { background: #394530; color: var(--accent); }
+:root[data-theme="allright"] .set-record-list tr.completed i { background: #394530; color: var(--accent); }
 
 /* Modal, picker, and authentication */
 :root[data-theme="allright"] .modal-backdrop { background: #080b08bf; }

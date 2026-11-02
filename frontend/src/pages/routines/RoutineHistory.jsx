@@ -48,10 +48,19 @@ export default function RoutineHistory({ id, navigate }) {
         const previous = stats.sessions[index + 1]
         return <Link to={`/workouts/${session.sessionId}`} navigate={navigate} className="routine-history-row" key={session.sessionId}>
           <header><time>{formatDate(session.workoutDate)}</time><b>{formatNumber(session.totalVolume, 2)} kg</b>{previous && <span className={changeClass(session.totalVolume, previous.totalVolume)}>{volumeDifference(session.totalVolume, previous.totalVolume)}</span>}</header>
-          <ul>{session.exercises.map((exercise) => {
-            const before = previous?.exercises.find((item) => item.exerciseId === exercise.exerciseId)
-            return <li key={exercise.exerciseId}><span>{exercise.name}</span><span>{exercise.completedSetCount}세트 · 최대 {formatNumber(exercise.maxWeight, 2)}kg · {formatNumber(exercise.totalVolume, 2)}kg</span>{before && <em className={changeClass(exercise.totalVolume, before.totalVolume)}>{volumeDifference(exercise.totalVolume, before.totalVolume)}</em>}</li>
-          })}</ul>
+          <table className="record-table routine-record-table">
+            <thead><tr><th scope="col">운동</th><th scope="col">세트</th><th scope="col">최대(kg)</th><th scope="col">볼륨(kg)</th><th scope="col">변화</th></tr></thead>
+            <tbody>{session.exercises.map((exercise) => {
+              const before = previous?.exercises.find((item) => item.exerciseId === exercise.exerciseId)
+              return <tr key={exercise.exerciseId}>
+                <th scope="row">{exercise.name}</th>
+                <td>{exercise.completedSetCount}</td>
+                <td>{formatNumber(exercise.maxWeight, 2)}</td>
+                <td>{formatNumber(exercise.totalVolume, 2)}</td>
+                <td className={before ? changeClass(exercise.totalVolume, before.totalVolume) : ''}>{before ? volumeDifference(exercise.totalVolume, before.totalVolume).replace(' kg', '') : '—'}</td>
+              </tr>
+            })}</tbody>
+          </table>
         </Link>
       })}</div> : <EmptyState icon="history" title="아직 이 루틴으로 운동한 기록이 없어요" description="루틴으로 운동을 시작하면 회차별 변화를 확인할 수 있어요."/>}
     </section>

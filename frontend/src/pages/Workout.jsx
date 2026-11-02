@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
-import { api } from '../lib/api'
+import { api, query } from '../lib/api'
 import ExercisePicker from '../components/ExercisePicker'
+import WorkoutCalendar from '../components/WorkoutCalendar'
 import { ExerciseCard, SetRecordList, SetTable } from '../components/ExerciseCard'
 import { BindExercisesButton } from '../components/ExerciseGroups'
 import { useCharacterEvent } from '../themes/context/characterEventContext'
 import { CHARACTER_EVENTS } from '../themes/context/characterEvents'
 import { ConfirmModal, EmptyState, ErrorMessage, Icon, Loading, Modal, PageHeader } from '../components/ui'
-import { formatDate, formatNumber, todayString } from '../lib/utils'
-import { workoutRequest } from '../lib/workoutSession'
+import { formatDate, formatNumber, isoDate, todayString } from '../lib/utils'
+import { draftFromSession, workoutRequest } from '../lib/workoutSession'
 import { bindExercises, completedVolume, countSets, nextSet, normalizeGroups, targetSetCount, unbindGroup } from '../lib/setGroups'
 
 function readDraft(key) {
@@ -30,6 +31,37 @@ function PreviousRecords({ exercise, onLoad, onClose }) {
     <ErrorMessage error={error}/>
     {!records ? <Loading/> : <div className="record-list">{records.length ? records.map((record) => <article className="record-card" key={record.sessionId}><header><b>{formatDate(record.workoutDate)}</b><span>{countSets([record], true)}세트</span></header><SetRecordList sets={record.sets}/><button className="secondary-button full" onClick={() => onLoad(record.sets)}>이 기록 불러오기</button></article>) : <EmptyState icon="history" title="아직 이전 기록이 없어요" description="첫 기록을 완료하면 이곳에서 다시 불러올 수 있어요."/>}</div>}
   </Modal>
+}
+
+function RecordCalendar({ workoutDate, onLoad, onBack }) {
+  const [cursor, setCursor] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
+  const [selected, setSelected] = useState(todayString)
+  const [sessions, setSessions] = useState([])
+  const [error, setError] = useState(null)
+  const year = cursor.getFullYear()
+  const month = cursor.getMonth()
+  const from = isoDate(year, month, 1)
+  const to = isoDate(year, month, new Date(year, month + 1, 0).getDate())
+  useEffect(() => {
+    let active = true
+    api(`/api/workout-sessions${query({ from, to })}`).then((value) => { if (active) { setSessions(value); setError(null) } }).catch((requestError) => active && setError(requestError))
+    return () => { active = false }
+  }, [from, to])
+  const byDate = useMemo(() => sessions.reduce((map, session) => {
+    map[session.workoutDate] = [...(map[session.workoutDate] || []), session]
+    return map
+  }, {}), [sessions])
+  const selectedSessions = byDate[selected] || []
+  return <div className="page"><PageHeader back="/workout" navigate={onBack} eyebrow={formatDate(workoutDate)} title="불러올 기록을 선택하세요"/>
+    <ErrorMessage error={error}/>
+    <div className="dashboard-grid">
+      <WorkoutCalendar cursor={cursor} selected={selected} byDate={byDate} onMonthChange={(next) => { setCursor(next); setSelected(isoDate(next.getFullYear(), next.getMonth(), 1)) }} onSelect={setSelected}/>
+      <section className="day-sessions">
+        <header className="section-header"><div><p className="eyebrow">DAILY LOG</p><h2>{formatDate(selected)}</h2></div><span className="count-badge">{selectedSessions.length}개</span></header>
+        <div className="session-list">{selectedSessions.length ? selectedSessions.map((session) => <button type="button" className="session-card" key={session.id} onClick={() => onLoad(session)}><span className="session-icon"><Icon name="workout"/></span><div><h3>{session.routineName || '자유 운동'}</h3><p>운동 {session.exercises.length}개 · 완료 {countSets(session.exercises, true)}세트</p></div><Icon name="chevron"/></button>) : <EmptyState icon="calendar" title="이날 기록된 운동이 없어요" description="운동 기록이 있는 다른 날짜를 선택해 주세요."/>}</div>
+      </section>
+    </div>
+  </div>
 }
 
 export default function Workout({ navigate, auth, sessionId }) {
@@ -69,6 +101,9 @@ export default function Workout({ navigate, auth, sessionId }) {
   const startRoutine = (routine) => {
     const next = { workoutDate: newWorkoutDate, routineId: routine.id, routineName: routine.name, exercises: routine.exercises.map((exercise, index) => ({ exerciseId: exercise.exerciseId, name: exercise.name, bodyPart: exercise.bodyPart, exerciseOrder: index + 1, groupNumber: exercise.groupNumber, sets: exercise.sets?.length ? exercise.sets.map((set) => ({ ...set, completed: false })) : Array.from({ length: exercise.targetSets || 1 }, (_, setIndex) => ({ setNumber: setIndex + 1, weight: 0, reps: exercise.targetReps || 0, completed: false, setType: 'WORKING' })) })), updatedAt: new Date().toISOString() }
     setDraft(next); setView('editor'); triggerCharacter(CHARACTER_EVENTS.ROUTINE_SELECT)
+  }
+  const startFromSession = (session) => {
+    setDraft(draftFromSession(session, newWorkoutDate)); setView('editor'); triggerCharacter(CHARACTER_EVENTS.RECORD_LOAD)
   }
   const discard = () => setConfirming({ title: '새로 시작', message: '작성 중인 운동을 삭제하고 새로 시작할까요?', onConfirm: () => { localStorage.removeItem(draftKey); setDraft(null); setView('hub') } })
   const addExercise = (exercise) => {
@@ -110,7 +145,9 @@ export default function Workout({ navigate, auth, sessionId }) {
     return <div className="page narrow-page"><PageHeader eyebrow="DRAFT FOUND" title="작성 중인 운동이 있어요"/><section className="resume-card"><div className="resume-graphic"><span>{countSets(draft.exercises, true)}</span><small>/{countSets(draft.exercises)} 세트</small></div><div><p>{formatDate(draft.workoutDate)}</p><h2>{draft.routineName || '자유 운동'}</h2><span>운동 {draft.exercises.length}개 · {new Date(draft.updatedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} 저장</span></div></section><button className="primary-button full" onClick={() => setView('editor')}>이어하기</button><button className="text-button danger" onClick={discard}>새로 시작</button>{confirming && <ConfirmModal {...confirming} onConfirm={() => { confirming.onConfirm(); setConfirming(null) }} onClose={() => setConfirming(null)}/>}</div>
   }
 
-  if (view === 'hub') return <div className="page narrow-page"><PageHeader eyebrow={formatDate(newWorkoutDate)} title="어떻게 시작할까요?"/><p className="page-lead">오늘의 컨디션에 맞는 방법을 선택하세요.</p><div className="start-options"><button className="start-option primary-option" onClick={() => { setView('routines'); triggerCharacter(CHARACTER_EVENTS.ROUTINE_START) }}><span className="option-icon"><Icon name="routine" size={28}/></span><small>MY ROUTINE</small><h2>루틴으로 시작</h2><p>저장한 운동과 목표 세트를 바로 불러옵니다.</p><Icon name="chevron"/></button><button className="start-option" onClick={startFree}><span className="option-icon"><Icon name="plus" size={28}/></span><small>FREE WORKOUT</small><h2>자유 운동</h2><p>빈 운동에서 원하는 종목을 직접 추가합니다.</p><Icon name="chevron"/></button></div></div>
+  if (view === 'hub') return <div className="page narrow-page"><PageHeader eyebrow={formatDate(newWorkoutDate)} title="어떻게 시작할까요?"/><p className="page-lead">오늘의 컨디션에 맞는 방법을 선택하세요.</p><div className="start-options"><button className="start-option primary-option" onClick={() => { setView('routines'); triggerCharacter(CHARACTER_EVENTS.ROUTINE_START) }}><span className="option-icon"><Icon name="routine" size={28}/></span><small>MY ROUTINE</small><h2>루틴으로 시작</h2><p>저장한 운동과 목표 세트를 바로 불러옵니다.</p><Icon name="chevron"/></button><button className="start-option" onClick={startFree}><span className="option-icon"><Icon name="plus" size={28}/></span><small>FREE WORKOUT</small><h2>자유 운동</h2><p>빈 운동에서 원하는 종목을 직접 추가합니다.</p><Icon name="chevron"/></button><button className="start-option start-option-wide" onClick={() => setView('records')}><span className="option-icon"><Icon name="calendar" size={28}/></span><small>PAST RECORD</small><h2>지난 기록 불러오기</h2><p>달력에서 고른 운동을 그대로 불러옵니다. 루틴 기록이면 오늘 운동도 그 루틴에 포함됩니다.</p><Icon name="chevron"/></button></div></div>
+
+  if (view === 'records') return <RecordCalendar workoutDate={newWorkoutDate} onLoad={startFromSession} onBack={() => setView('hub')}/>
 
   if (view === 'routines') return <div className="page"><PageHeader back="/workout" navigate={() => setView('hub')} eyebrow={formatDate(newWorkoutDate)} title="루틴을 선택하세요"/><div className="routine-select-grid">{routines.map((routine) => <button className="routine-select-card" key={routine.id} onClick={() => startRoutine(routine)}><div><span className="routine-symbol"><Icon name="routine"/></span><small>{routine.exercises.length} EXERCISES</small></div><h2>{routine.name}</h2><p>{routine.exercises.slice(0, 3).map((exercise) => exercise.name).join(' · ')}</p><footer><span>목표 {targetSetCount(routine.exercises)}세트</span><Icon name="chevron"/></footer></button>)}{!routines.length && <EmptyState icon="routine" title="저장된 루틴이 없어요" description="루틴을 먼저 만들거나 자유 운동으로 시작하세요."/>}</div></div>
 

@@ -2,21 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { api, query } from '../lib/api'
 import { useCharacterEvent } from '../themes/context/characterEventContext'
 import { CHARACTER_EVENTS } from '../themes/context/characterEvents'
-import { themes } from '../themes'
-import { useTheme } from '../themes/context/themeContext'
 import BodyVolumeSection from '../components/BodyVolumeSection'
+import WorkoutCalendar from '../components/WorkoutCalendar'
 import { EmptyState, ErrorMessage, Icon, Link, Loading, PageHeader } from '../components/ui'
 import { countSets } from '../lib/setGroups'
-import { formatDate, formatNumber, todayString, volumeChange } from '../lib/utils'
-
-function isoDate(year, month, day) {
-  return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-}
+import { formatDate, formatNumber, isoDate, todayString, volumeChange } from '../lib/utils'
 
 export default function Dashboard({ navigate, auth }) {
   const { triggerCharacter } = useCharacterEvent()
-  const { currentTheme } = useTheme()
-  const calendarFace = themes[currentTheme].calendarFace
   const entered = useRef(false)
   const initialDate = window.history.state?.selectedDate || todayString()
   const initialDay = new Date(`${initialDate}T00:00:00`)
@@ -58,10 +51,6 @@ export default function Dashboard({ navigate, auth }) {
     map[session.workoutDate] = [...(map[session.workoutDate] || []), session]
     return map
   }, {}), [sessions])
-  const days = []
-  const firstDay = new Date(year, month, 1).getDay()
-  for (let index = 0; index < firstDay; index += 1) days.push(null)
-  for (let day = 1; day <= lastDate; day += 1) days.push(day)
   const selectedSessions = byDate[selected] || []
   const addRecord = selected <= todayString() && <Link to="/workout" navigate={() => navigate('/workout', false, { workoutDate: selected })} className="secondary-button">{selected === todayString() ? '운동 시작' : '이 날짜에 기록 추가'}</Link>
   return (
@@ -76,16 +65,7 @@ export default function Dashboard({ navigate, auth }) {
           {stats?.recentSession ? <Link to={`/workouts/${stats.recentSession.id}`} navigate={openRecord} className="stat-card stat-4 stat-recent"><span>최근 운동</span><strong>{formatDate(stats.recentSession.workoutDate, false)}</strong><p className="stat-note">운동 {stats.recentSession.exerciseCount}개 · 기록 보기</p><i/></Link> : <article className="stat-card stat-4"><span>최근 운동</span><strong>기록 없음</strong><i/></article>}
         </section>
         <div className="dashboard-grid">
-          <section className="card calendar-card">
-            <header className="section-header"><div><p className="eyebrow">WORKOUT CALENDAR</p><h2>{year}년 {month + 1}월</h2></div><div className="month-buttons"><button className="icon-button" onClick={() => { const next = new Date(year, month - 1, 1); setCursor(next); setSelected(isoDate(next.getFullYear(), next.getMonth(), 1)) }} aria-label="이전 달"><Icon name="back"/></button><button className="icon-button" onClick={() => { const next = new Date(year, month + 1, 1); setCursor(next); setSelected(isoDate(next.getFullYear(), next.getMonth(), 1)) }} aria-label="다음 달"><Icon name="chevron"/></button></div></header>
-            <div className="calendar-weekdays">{['일','월','화','수','목','금','토'].map((day) => <span key={day}>{day}</span>)}</div>
-            <div className="calendar-grid">{days.map((day, index) => {
-              if (!day) return <span key={`empty-${index}`} />
-              const date = isoDate(year, month, day)
-              const count = byDate[date]?.length || 0
-              return <button key={date} className={`${selected === date ? 'selected' : ''} ${date === todayString() ? 'today' : ''}`} onClick={() => setSelected(date)}><span className="calendar-day">{day}</span><span className="calendar-marker">{count > 0 && (calendarFace ? <><img className="calendar-face" src={calendarFace} alt=""/>{count > 1 && <i className="calendar-face-count">{count}</i>}</> : <i>{count > 1 ? count : ''}</i>)}</span></button>
-            })}</div>
-          </section>
+          <WorkoutCalendar cursor={cursor} selected={selected} byDate={byDate} onMonthChange={(next) => { setCursor(next); setSelected(isoDate(next.getFullYear(), next.getMonth(), 1)) }} onSelect={setSelected}/>
           <section className="day-sessions">
             <header className="section-header"><div><p className="eyebrow">DAILY LOG</p><h2>{formatDate(selected)}</h2></div><span className="count-badge">{selectedSessions.length}개</span></header>
             <div className="session-list">{selectedSessions.length ? selectedSessions.map((session) => {

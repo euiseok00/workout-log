@@ -6,6 +6,7 @@ import { SetRecordList } from '../components/ExerciseCard'
 import { ConfirmModal, ErrorMessage, Icon, Link, Loading, Modal, PageHeader } from '../components/ui'
 import { completedVolume, countSets, groupLabel } from '../lib/setGroups'
 import { bodyPartLabel, formatDate, formatNumber, todayString } from '../lib/utils'
+import { draftFromSession } from '../lib/workoutSession'
 
 export default function WorkoutDetail({ id, navigate, auth }) {
   const { triggerCharacter } = useCharacterEvent()
@@ -25,9 +26,7 @@ export default function WorkoutDetail({ id, navigate, auth }) {
   if (!session) return <div className="page"><PageHeader back="/dashboard" navigate={navigate} title="운동 상세"/><ErrorMessage error={error}/>{!error && <Loading/>}</div>
   const draftKey = `workout_draft:${auth.user.id}`
   const loadWorkout = () => {
-    const { routineId } = session
-    const routineName = routineId == null ? null : session.routineName
-    localStorage.setItem(draftKey, JSON.stringify({ workoutDate: todayString(), routineId, routineName, exercises: session.exercises.map((exercise, exerciseIndex) => ({ ...exercise, exerciseOrder: exerciseIndex + 1, sets: exercise.sets.map((set, setIndex) => ({ ...set, setNumber: setIndex + 1, completed: false })) })), updatedAt: new Date().toISOString() }))
+    localStorage.setItem(draftKey, JSON.stringify(draftFromSession(session, todayString())))
     triggerCharacter(CHARACTER_EVENTS.RECORD_LOAD)
     navigate('/workout')
   }

@@ -91,7 +91,7 @@
 :root[data-theme="apdo"] .progress-track i { background: #bf414a; }
 :root[data-theme="apdo"] .detail-summary > div { border-color: #654349; }
 :root[data-theme="apdo"] .exercise-card > header,
-:root[data-theme="apdo"] :is(.set-row, .history-list article, .set-record-list p) { border-color: var(--line); }
+:root[data-theme="apdo"] :is(.set-row, .record-table th, .record-table td) { border-color: var(--line); }
 :root[data-theme="apdo"] .set-head { color: #bcb1aa; }
 :root[data-theme="apdo"] .set-row.completed { background: #40272d; box-shadow: inset 3px 0 #ae3b45; }
 :root[data-theme="apdo"] .set-row.completed > b { color: #f0d9d5; }
@@ -112,7 +112,7 @@
 :root[data-theme="apdo"] .exercise-toolbar { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
 :root[data-theme="apdo"] .exercise-list-card p i { background: #b94a53; }
 :root[data-theme="apdo"] :is(.body-back, .body-chest, .body-shoulders, .body-arms, .body-legs) { background: #43282d; color: #df777d; }
-:root[data-theme="apdo"] .set-record-list p.completed i { background: #4b2b31; color: #e77d83; }
+:root[data-theme="apdo"] .set-record-list tr.completed i { background: #4b2b31; color: #e77d83; }
 
 /* Modal, picker, and authentication */
 :root[data-theme="apdo"] .modal-backdrop { background: #080709c9; }

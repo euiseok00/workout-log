@@ -46,5 +46,13 @@ export function SetTable({ exercises, exercise, trackCompleted = false, volume, 
 }
 
 export function SetRecordList({ sets }) {
-  return <div className="set-record-list">{sets.map((set) => <p className={set.completed ? 'completed' : ''} key={set.setNumber}><span>{setLabel(set)}</span><b>{Number(set.weight) === 0 ? '맨몸' : `${set.weight}kg`} × {set.reps}회</b><i>{set.completed ? <Icon name="check" size={16}/> : '미완료'}</i></p>)}</div>
+  return <table className="record-table set-record-list">
+    <thead><tr><th scope="col">세트</th><th scope="col">중량</th><th scope="col">횟수</th><th scope="col">완료</th></tr></thead>
+    <tbody>{sets.map((set) => <tr className={set.completed ? 'completed' : ''} key={set.setNumber}>
+      <th scope="row">{setLabel(set)}</th>
+      <td>{Number(set.weight) === 0 ? '맨몸' : `${set.weight}kg`}</td>
+      <td>{set.reps}회</td>
+      <td>{set.completed ? <i aria-label="완료"><Icon name="check" size={16}/></i> : '미완료'}</td>
+    </tr>)}</tbody>
+  </table>
 }
