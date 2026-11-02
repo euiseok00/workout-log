@@ -37,6 +37,22 @@ public class StatisticsController {
 		return statisticsService.getDashboard(Integer.valueOf(jwt.getSubject()), today);
 	}
 
+	@GetMapping("/volume-periods")
+	public StatisticsResponse.VolumeComparison getVolumeComparison(
+			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+			@RequestParam(defaultValue = "7") int days,
+			@AuthenticationPrincipal Jwt jwt) {
+		return statisticsService.getVolumeComparison(Integer.valueOf(jwt.getSubject()), from, days);
+	}
+
+	@GetMapping("/routines/{routineId}")
+	public StatisticsResponse.Routine getRoutineStatistics(@PathVariable Integer routineId,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+			@AuthenticationPrincipal Jwt jwt) {
+		return statisticsService.getRoutineStatistics(routineId, Integer.valueOf(jwt.getSubject()), from, to);
+	}
+
 	@GetMapping("/exercises/{exerciseId}")
 	public StatisticsResponse.Exercise getExerciseStatistics(@PathVariable Integer exerciseId,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,

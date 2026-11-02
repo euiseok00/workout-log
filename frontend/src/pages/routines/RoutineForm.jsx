@@ -1,17 +1,21 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../lib/api'
-import { EmptyState, ErrorMessage, Icon, Link, Loading, PageHeader } from '../../components/ui'
+import { ConfirmModal, EmptyState, ErrorMessage, Icon, Link, Loading, PageHeader } from '../../components/ui'
 import DeleteRoutineModal from './DeleteRoutineModal'
 import ExercisePicker from '../../components/ExercisePicker'
-import { bodyPartLabel } from '../../lib/utils'
+import { ExerciseCard, SetTable } from '../../components/ExerciseCard'
+import { BindExercisesButton } from '../../components/ExerciseGroups'
+import { bindExercises, nextSet, normalizeGroups, targetSetCount, unbindGroup } from '../../lib/setGroups'
 
 export default function RoutineForm({ id, navigate }) {
   const editing = Boolean(id)
   const [name, setName] = useState('')
-  const [items, setItems] = useState([])
+  const [items, setRawItems] = useState([])
+  const setItems = (update) => setRawItems((current) => normalizeGroups(update(current)))
   const [exercises, setExercises] = useState(null)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [removing, setRemoving] = useState(null)
   const [dragIndex, setDragIndex] = useState(null)
   const [loading, setLoading] = useState(editing)
   const [saving, setSaving] = useState(false)
@@ -26,10 +30,10 @@ export default function RoutineForm({ id, navigate }) {
       setExercises(exerciseData)
       if (routine) {
         setName(routine.name)
-        setItems(routine.exercises.map((exercise) => ({
+        setRawItems(routine.exercises.map((exercise) => ({
           ...exercise,
-          sets: exercise.sets?.length ? exercise.sets.map((set) => ({ weight: set.weight, reps: set.reps }))
-            : Array.from({ length: exercise.targetSets || 1 }, () => ({ weight: 0, reps: exercise.targetReps || 0 })),
+          sets: exercise.sets?.length ? exercise.sets.map((set) => ({ weight: set.weight, reps: set.reps, setType: set.setType }))
+            : Array.from({ length: exercise.targetSets || 1 }, () => ({ weight: 0, reps: exercise.targetReps || 0, setType: 'WORKING' })),
         })))
       }
     }).catch((requestError) => active && setError(requestError)).finally(() => active && setLoading(false))
@@ -37,11 +41,11 @@ export default function RoutineForm({ id, navigate }) {
   }, [editing, id])
 
   const add = (exercise) => {
-    setItems((current) => [...current, { exerciseId: exercise.id, name: exercise.name, bodyPart: exercise.bodyPart, sets: Array.from({ length: 3 }, () => ({ weight: 0, reps: 10 })) }])
+    setItems((current) => [...current, { exerciseId: exercise.id, name: exercise.name, bodyPart: exercise.bodyPart, groupNumber: null, sets: Array.from({ length: 3 }, () => ({ weight: 0, reps: 10, setType: 'WORKING' })) }])
     setPickerOpen(false)
   }
   const updateSet = (exerciseIndex, setIndex, field, value) => setItems((current) => current.map((item, index) => index === exerciseIndex ? { ...item, sets: item.sets.map((set, index) => index === setIndex ? { ...set, [field]: value } : set) } : item))
-  const addSet = (exerciseIndex) => setItems((current) => current.map((item, index) => index === exerciseIndex ? { ...item, sets: [...item.sets, { weight: 0, reps: 0 }] } : item))
+  const addSet = (exerciseIndex) => setItems((current) => current.map((item, index) => index === exerciseIndex ? { ...item, sets: [...item.sets, nextSet(current, item)] } : item))
   const removeSet = (exerciseIndex, setIndex) => setItems((current) => current.map((item, index) => index === exerciseIndex ? { ...item, sets: item.sets.filter((_, index) => index !== setIndex) } : item))
   const move = (from, to) => {
     if (from == null || to < 0 || to >= items.length || from === to) return
@@ -57,9 +61,10 @@ export default function RoutineForm({ id, navigate }) {
         exercises: items.map((item, index) => ({
           exerciseId: item.exerciseId,
           exerciseOrder: index + 1,
+          groupNumber: item.groupNumber ?? null,
           targetSets: item.sets.length,
           targetReps: Number(item.sets[0].reps) || null,
-          sets: item.sets.map((set, setIndex) => ({ setNumber: setIndex + 1, weight: Number(set.weight), reps: Number(set.reps) })),
+          sets: item.sets.map((set, setIndex) => ({ setNumber: setIndex + 1, weight: Number(set.weight), reps: Number(set.reps), setType: set.setType || 'WORKING' })),
         })),
       } })
       navigate('/routines')
@@ -69,21 +74,20 @@ export default function RoutineForm({ id, navigate }) {
   if (loading || !exercises) return <div className="page"><PageHeader back="/routines" navigate={navigate} title="루틴"/><ErrorMessage error={error}/>{!error && <Loading/>}</div>
   return <><form className="page routine-form-page" onSubmit={save}>
     <PageHeader back="/routines" navigate={navigate} eyebrow={editing ? 'EDIT ROUTINE' : 'NEW ROUTINE'} title={editing ? '루틴 수정' : '새 루틴 만들기'}/>
-    {editing && <div className="detail-actions"><button type="button" className="text-button danger" onClick={() => setDeleteOpen(true)}>루틴 삭제</button></div>}
+    {editing && <div className="detail-actions"><Link to={`/routines/${id}/history`} navigate={navigate} className="secondary-button compact">기록 변화</Link><button type="button" className="text-button danger" onClick={() => setDeleteOpen(true)}>루틴 삭제</button></div>}
     <ErrorMessage error={error}/>
     {!editing && <aside className="routine-import-notice"><p>완료한 운동 기록을 루틴으로 저장할 수도 있어요.</p><Link to="/dashboard" navigate={navigate} className="secondary-button compact">운동 기록에서 가져오기</Link></aside>}
     <section className="card form-section"><label className="field-label" htmlFor="routine-name">루틴 이름</label><input id="routine-name" className="large-input" value={name} onChange={(event) => setName(event.target.value)} placeholder="예: 가슴 루틴" maxLength="100" required/></section>
     <section className="routine-builder"><header className="section-header"><div><p className="eyebrow">EXERCISE PLAN</p><h2>운동 구성</h2></div><span className="count-badge">{items.length}개</span></header>
-      {items.map((item, exerciseIndex) => <article className="routine-exercise-card" key={exerciseIndex} onDragOver={(event) => event.preventDefault()} onDrop={() => { move(dragIndex, exerciseIndex); setDragIndex(null) }}>
-        <header><span className="drag-handle" draggable onDragStart={() => setDragIndex(exerciseIndex)}><Icon name="drag"/></span><span className="exercise-symbol">{item.name.slice(0, 1)}</span><div className="routine-exercise-name"><b>{item.name}</b><small>{bodyPartLabel(item.bodyPart)}</small></div><div className="row-actions"><button type="button" onClick={() => move(exerciseIndex, exerciseIndex - 1)} disabled={exerciseIndex === 0} aria-label="위로 이동">↑</button><button type="button" onClick={() => move(exerciseIndex, exerciseIndex + 1)} disabled={exerciseIndex === items.length - 1} aria-label="아래로 이동">↓</button><button type="button" onClick={() => setItems((current) => current.filter((_, index) => index !== exerciseIndex))} aria-label="운동 삭제"><Icon name="close" size={17}/></button></div></header>
-        <div className="routine-set-table"><div className="routine-set-head"><span>세트</span><span>중량</span><span>횟수</span><span/></div>{item.sets.map((set, setIndex) => <div className="routine-set-row" key={setIndex}><b>{setIndex + 1}</b><label><input type="number" min="0" max="9999.99" step="0.01" required value={set.weight} onChange={(event) => updateSet(exerciseIndex, setIndex, 'weight', event.target.value)} aria-label={`${item.name} ${setIndex + 1}세트 중량`}/><span>kg</span></label><label><input type="number" min="0" step="1" required value={set.reps} onChange={(event) => updateSet(exerciseIndex, setIndex, 'reps', event.target.value)} aria-label={`${item.name} ${setIndex + 1}세트 횟수`}/><span>회</span></label><button type="button" className="remove-set" onClick={() => removeSet(exerciseIndex, setIndex)} aria-label={`${item.name} ${setIndex + 1}세트 삭제`}><Icon name="close" size={15}/></button></div>)}</div>
-        <button type="button" className="add-row-button" onClick={() => addSet(exerciseIndex)}><Icon name="plus" size={17}/> 세트 추가</button>
-      </article>)}
-      {!items.length && <EmptyState icon="routine" title="운동을 추가해 루틴을 구성하세요"/>}<button type="button" className="add-exercise-button" onClick={() => setPickerOpen(true)}><Icon name="plus"/> 운동 추가</button>
+      {items.map((item, exerciseIndex) => <ExerciseCard key={exerciseIndex} exercises={items} index={exerciseIndex} dragIndex={dragIndex} onDragIndex={setDragIndex} onMove={move} onRemove={setRemoving} onUnbind={(groupNumber) => setItems((current) => unbindGroup(current, groupNumber))}>
+        <SetTable exercises={items} exercise={item} onChange={(setIndex, field, value) => updateSet(exerciseIndex, setIndex, field, value)} onAdd={() => addSet(exerciseIndex)} onRemove={(setIndex) => removeSet(exerciseIndex, setIndex)}/>
+      </ExerciseCard>)}
+      {!items.length && <EmptyState icon="routine" title="운동을 추가해 루틴을 구성하세요"/>}<BindExercisesButton exercises={items} onBind={(indexes) => setItems((current) => bindExercises(current, indexes))}/><button type="button" className="add-exercise-button" onClick={() => setPickerOpen(true)}><Icon name="plus"/> 운동 추가</button>
     </section>
-    <div className="form-actions"><Link to="/routines" navigate={navigate} className="secondary-button">취소</Link><button className="primary-button" disabled={saving}>{saving ? '저장 중...' : '루틴 저장'}</button></div>
+    <div className="sticky-save"><div><span>{items.length}개 운동</span><b>목표 {targetSetCount(items)}세트</b></div><button className="primary-button" disabled={saving}>{saving ? '저장 중...' : '루틴 저장'}</button></div>
   </form>
     {pickerOpen && <ExercisePicker exercises={exercises} excluded={items.map((item) => item.exerciseId)} onSelect={add} onClose={() => setPickerOpen(false)}/>}
+    {removing != null && <ConfirmModal title="운동 삭제" message="이 운동과 입력한 세트를 삭제할까요?" onConfirm={() => { setItems((current) => current.filter((_, index) => index !== removing)); setRemoving(null) }} onClose={() => setRemoving(null)}/>}
     {deleteOpen && <DeleteRoutineModal routine={{ id, name }} onClose={() => setDeleteOpen(false)} onDeleted={() => navigate('/routines')}/>}
   </>
 }

@@ -25,6 +25,18 @@ public interface WorkoutSessionRepository extends JpaRepository<WorkoutSession, 
 	@EntityGraph(attributePaths = { "exercises", "exercises.exercise" })
 	Optional<WorkoutSession> findByIdAndUserId(Integer id, Integer userId);
 
+	@EntityGraph(attributePaths = { "exercises", "exercises.exercise" })
+	@Query("""
+			select distinct session from WorkoutSession session
+			where session.userId = :userId
+			  and session.routineId = :routineId
+			  and session.workoutDate >= coalesce(:fromDate, session.workoutDate)
+			  and session.workoutDate <= coalesce(:toDate, session.workoutDate)
+			order by session.workoutDate desc, session.id desc
+			""")
+	List<WorkoutSession> findAllByRoutineInDateRange(@Param("userId") Integer userId,
+			@Param("routineId") Integer routineId, @Param("fromDate") LocalDate from, @Param("toDate") LocalDate to);
+
 	@EntityGraph(attributePaths = "exercises")
 	Optional<WorkoutSession> findFirstByUserIdOrderByWorkoutDateDescIdDesc(Integer userId);
 }

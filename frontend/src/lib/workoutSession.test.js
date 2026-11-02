@@ -18,11 +18,11 @@ test('edited session keeps its date and sends only the current exercises and set
     workoutDate: '2026-10-15',
     routineId: null,
     exercises: [
-      { exerciseId: 8, exerciseOrder: 1, sets: [
-        { setNumber: 1, weight: 140.5, reps: 4, completed: true },
-        { setNumber: 2, weight: 0, reps: 0, completed: false },
+      { exerciseId: 8, exerciseOrder: 1, groupNumber: null, sets: [
+        { setNumber: 1, weight: 140.5, reps: 4, completed: true, setType: 'WORKING' },
+        { setNumber: 2, weight: 0, reps: 0, completed: false, setType: 'WORKING' },
       ] },
-      { exerciseId: 9, exerciseOrder: 2, sets: [] },
+      { exerciseId: 9, exerciseOrder: 2, groupNumber: null, sets: [] },
     ],
   })
 })

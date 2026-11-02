@@ -7,6 +7,7 @@ import ExerciseHistory from './pages/exercises/ExerciseHistory'
 import ExerciseList from './pages/exercises/ExerciseList'
 import Layout from './components/Layout'
 import RoutineForm from './pages/routines/RoutineForm'
+import RoutineHistory from './pages/routines/RoutineHistory'
 import RoutineList from './pages/routines/RoutineList'
 import Workout from './pages/Workout'
 import WorkoutDetail from './pages/WorkoutDetail'
@@ -37,6 +38,7 @@ export default function App() {
   const workoutMatch = route.match(/^\/workouts\/(\d+)$/)
   const workoutEditMatch = route.match(/^\/workouts\/(\d+)\/edit$/)
   const routineMatch = route.match(/^\/routines\/(\d+)$/)
+  const routineHistoryMatch = route.match(/^\/routines\/(\d+)\/history$/)
   const exerciseMatch = route.match(/^\/exercises\/(\d+)\/history$/)
 
   if (route === '/dashboard') page = <Dashboard navigate={navigate} auth={auth}/>
@@ -46,6 +48,7 @@ export default function App() {
   else if (route === '/routines') page = <RoutineList navigate={navigate}/>
   else if (route === '/routines/new') page = <RoutineForm navigate={navigate}/>
   else if (routineMatch) page = <RoutineForm id={routineMatch[1]} navigate={navigate}/>
+  else if (routineHistoryMatch) page = <RoutineHistory id={routineHistoryMatch[1]} navigate={navigate}/>
   else if (route === '/exercises') page = <ExerciseList navigate={navigate}/>
   else if (exerciseMatch) page = <ExerciseHistory id={exerciseMatch[1]} navigate={navigate}/>
   else page = <Dashboard navigate={navigate} auth={auth}/>

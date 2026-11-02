@@ -1,3 +1,6 @@
+import { useState } from 'react'
+import { formatNumber } from '../lib/utils'
+
 export function Icon({ name, size = 22 }) {
   const common = {
     width: size,
@@ -87,4 +90,18 @@ export function Modal({ title, children, onClose, wide = false }) {
 export function ErrorMessage({ error }) {
   if (!error) return null
   return <div className="error-message" role="alert">{error.message || String(error)}</div>
+}
+
+export function ConfirmModal({ title, message, confirmLabel = '삭제', onConfirm, onClose }) {
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState(null)
+  const confirm = async () => {
+    setPending(true); setError(null)
+    try { await onConfirm() } catch (requestError) { setError(requestError); setPending(false) }
+  }
+  return <Modal title={title} onClose={() => !pending && onClose()}><p>{message}</p><ErrorMessage error={error}/><div className="detail-delete-actions"><button type="button" className="secondary-button" onClick={onClose} disabled={pending}>취소</button><button type="button" className="primary-button delete-confirm-button" onClick={confirm} disabled={pending}>{pending ? '처리 중...' : confirmLabel}</button></div></Modal>
+}
+
+export function StatCards({ cards }) {
+  return <section className="stats-grid detail-stats">{cards.map(([label, value, unit], index) => <article className={`stat-card stat-${index + 1}`} key={label}><span>{label}</span><strong>{formatNumber(value, 2)}<small>{unit}</small></strong><i/></article>)}</section>
 }

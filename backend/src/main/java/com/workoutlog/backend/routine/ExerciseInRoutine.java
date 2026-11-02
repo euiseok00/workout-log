@@ -46,6 +46,9 @@ public class ExerciseInRoutine {
 	@Column(name = "target_reps")
 	private Integer targetReps;
 
+	@Column(name = "group_number")
+	private Integer groupNumber;
+
 	@OneToMany(mappedBy = "exerciseInRoutine", cascade = CascadeType.ALL, orphanRemoval = true)
 	@OrderBy("setNumber ASC")
 	private List<RoutineSet> sets = new ArrayList<>();
@@ -54,12 +57,13 @@ public class ExerciseInRoutine {
 	}
 
 	public ExerciseInRoutine(Routine routine, Exercise exercise, Integer exerciseOrder, Integer targetSets,
-			Integer targetReps) {
+			Integer targetReps, Integer groupNumber) {
 		this.routine = routine;
 		this.exercise = exercise;
 		this.exerciseOrder = exerciseOrder;
 		this.targetSets = targetSets;
 		this.targetReps = targetReps;
+		this.groupNumber = groupNumber;
 	}
 
 	public Integer getId() {
@@ -80,6 +84,10 @@ public class ExerciseInRoutine {
 
 	public Integer getTargetReps() {
 		return targetReps;
+	}
+
+	public Integer getGroupNumber() {
+		return groupNumber;
 	}
 
 	public void addSet(RoutineSet set) { sets.add(set); }

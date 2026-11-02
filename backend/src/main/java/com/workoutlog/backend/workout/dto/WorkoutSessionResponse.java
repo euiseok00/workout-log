@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.List;
 
 import com.workoutlog.backend.exercise.BodyPart;
+import com.workoutlog.backend.exercise.SetType;
 import com.workoutlog.backend.workout.ExerciseInSession;
 import com.workoutlog.backend.workout.ExerciseSet;
 import com.workoutlog.backend.workout.WorkoutSession;
@@ -30,11 +31,12 @@ public record WorkoutSessionResponse(
 			String name,
 			BodyPart bodyPart,
 			Integer exerciseOrder,
+			Integer groupNumber,
 			List<SessionSetResponse> sets) {
 
 		static SessionExerciseResponse from(ExerciseInSession exercise) {
 			return new SessionExerciseResponse(exercise.getExercise().getId(), exercise.getExercise().getName(),
-					exercise.getExercise().getBodyPart(), exercise.getExerciseOrder(),
+					exercise.getExercise().getBodyPart(), exercise.getExerciseOrder(), exercise.getGroupNumber(),
 					exercise.getSets().stream()
 							.sorted(Comparator.comparing(ExerciseSet::getSetNumber))
 							.map(SessionSetResponse::from)
@@ -46,10 +48,12 @@ public record WorkoutSessionResponse(
 			Integer setNumber,
 			BigDecimal weight,
 			Integer reps,
-			boolean completed) {
+			boolean completed,
+			SetType setType) {
 
 		static SessionSetResponse from(ExerciseSet set) {
-			return new SessionSetResponse(set.getSetNumber(), set.getWeight(), set.getReps(), set.isCompleted());
+			return new SessionSetResponse(set.getSetNumber(), set.getWeight(), set.getReps(), set.isCompleted(),
+					set.getSetType());
 		}
 	}
 }

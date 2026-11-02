@@ -11,7 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.workoutlog.backend.common.error.RequestValidationException;
 import com.workoutlog.backend.exercise.Exercise;
+import com.workoutlog.backend.exercise.ExerciseGroups;
 import com.workoutlog.backend.exercise.ExerciseLookup;
+import com.workoutlog.backend.exercise.SetType;
 import com.workoutlog.backend.routine.dto.RoutineRequest;
 import com.workoutlog.backend.routine.dto.RoutineRequest.RoutineExerciseRequest;
 import com.workoutlog.backend.routine.dto.RoutineRequest.RoutineSetRequest;
@@ -48,9 +50,11 @@ public class RoutineService {
 			List<ExerciseSet> sets = new ArrayList<>(exercise.getSets());
 			sets.sort(Comparator.comparing(ExerciseSet::getSetNumber));
 			ExerciseInRoutine configured = new ExerciseInRoutine(routine, exercise.getExercise(),
-					exercise.getExerciseOrder(), sets.isEmpty() ? null : sets.size(), sets.isEmpty() ? null : sets.get(0).getReps());
+					exercise.getExerciseOrder(), sets.isEmpty() ? null : sets.size(), sets.isEmpty() ? null : sets.get(0).getReps(),
+					exercise.getGroupNumber());
 			for (ExerciseSet set : sets) {
-				configured.addSet(new RoutineSet(configured, set.getSetNumber(), set.getWeight(), set.getReps()));
+				configured.addSet(new RoutineSet(configured, set.getSetNumber(), set.getWeight(), set.getReps(),
+						set.getSetType()));
 			}
 			routine.addExercise(configured);
 		}
@@ -108,6 +112,12 @@ public class RoutineService {
 						"세트 번호는 중복될 수 없습니다.");
 			}
 		}
+		ExerciseGroups.validate(requests.stream()
+				.map(request -> new ExerciseGroups.Member(request.groupNumber(),
+						(request.sets() == null ? List.<RoutineSetRequest>of() : request.sets()).stream()
+								.map(set -> set.setType() == null ? SetType.WORKING : set.setType())
+								.toList()))
+				.toList());
 		return exerciseLookup.loadUsable(
 				requests.stream().map(RoutineExerciseRequest::exerciseId).collect(Collectors.toSet()), userId);
 	}
@@ -125,8 +135,9 @@ public class RoutineService {
 				targetReps = firstReps > 0 ? firstReps : null;
 			}
 			ExerciseInRoutine configured = new ExerciseInRoutine(routine, exercises.get(request.exerciseId()),
-					request.exerciseOrder(), targetSets, targetReps);
-			sets.forEach(set -> configured.addSet(new RoutineSet(configured, set.setNumber(), set.weight(), set.reps())));
+					request.exerciseOrder(), targetSets, targetReps, request.groupNumber());
+			sets.forEach(set -> configured.addSet(new RoutineSet(configured, set.setNumber(), set.weight(), set.reps(),
+					set.setType())));
 			routine.addExercise(configured);
 		});
 	}

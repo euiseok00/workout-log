@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.workoutlog.backend.exercise.SetType;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
@@ -29,6 +31,8 @@ public record WorkoutSessionRequest(
 			@NotNull(message = "운동 순서는 필수입니다.")
 			@Positive(message = "운동 순서는 양수여야 합니다.")
 			Integer exerciseOrder,
+			@Positive(message = "묶음 번호는 양수여야 합니다.")
+			Integer groupNumber,
 			@NotEmpty(message = "세트는 하나 이상이어야 합니다.")
 			List<@NotNull(message = "세트 정보는 필수입니다.") @Valid SessionSetRequest> sets) {
 	}
@@ -44,6 +48,7 @@ public record WorkoutSessionRequest(
 			@NotNull(message = "반복 횟수는 필수입니다.")
 			@PositiveOrZero(message = "반복 횟수는 0 이상이어야 합니다.")
 			Integer reps,
-			boolean completed) {
+			boolean completed,
+			SetType setType) {
 	}
 }

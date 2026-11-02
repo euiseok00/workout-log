@@ -30,6 +30,27 @@ public final class StatisticsResponse {
 			List<History> history) {
 	}
 
+	public record VolumeComparison(int days, VolumePeriod previous, VolumePeriod selected, VolumePeriod next) {
+	}
+
+	public record VolumePeriod(LocalDate from, LocalDate to, BigDecimal totalVolume, List<PartVolume> bodyParts) {
+	}
+
+	public record PartVolume(BodyPart bodyPart, BigDecimal volume) {
+	}
+
+	public record Routine(Integer routineId, String name, long sessionCount, long completedSetCount, long totalReps,
+			BigDecimal totalVolume, BigDecimal maxWeight, List<RoutineSession> sessions) {
+	}
+
+	public record RoutineSession(Integer sessionId, LocalDate workoutDate, long completedSetCount, long totalReps,
+			BigDecimal totalVolume, BigDecimal maxWeight, List<RoutineSessionExercise> exercises) {
+	}
+
+	public record RoutineSessionExercise(Integer exerciseId, String name, BodyPart bodyPart, long completedSetCount,
+			BigDecimal totalVolume, BigDecimal maxWeight) {
+	}
+
 	public record History(LocalDate workoutDate, long completedSetCount, long totalReps, BigDecimal totalVolume,
 			BigDecimal maxWeight) {
 	}

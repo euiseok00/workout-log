@@ -2,8 +2,12 @@ package com.workoutlog.backend.routine;
 
 import java.math.BigDecimal;
 
+import com.workoutlog.backend.exercise.SetType;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -34,17 +38,24 @@ public class RoutineSet {
 	@Column(nullable = false)
 	private Integer reps;
 
+	@Enumerated(EnumType.STRING)
+	@Column(name = "set_type", nullable = false, length = 20)
+	private SetType setType = SetType.WORKING;
+
 	protected RoutineSet() {
 	}
 
-	public RoutineSet(ExerciseInRoutine exerciseInRoutine, Integer setNumber, BigDecimal weight, Integer reps) {
+	public RoutineSet(ExerciseInRoutine exerciseInRoutine, Integer setNumber, BigDecimal weight, Integer reps,
+			SetType setType) {
 		this.exerciseInRoutine = exerciseInRoutine;
 		this.setNumber = setNumber;
 		this.weight = weight;
 		this.reps = reps;
+		this.setType = setType == null ? SetType.WORKING : setType;
 	}
 
 	public Integer getSetNumber() { return setNumber; }
 	public BigDecimal getWeight() { return weight; }
 	public Integer getReps() { return reps; }
+	public SetType getSetType() { return setType; }
 }

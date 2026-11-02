@@ -121,7 +121,7 @@
 :root[data-theme="allright"] .session-icon { background: #394530; color: var(--accent); }
 
 /* Workout, routine selection, and sets */
-:root[data-theme="allright"] :is(.start-option, .routine-select-card, .exercise-card, .routine-card, .routine-exercise-card, .exercise-list-card, .detail-exercise) {
+:root[data-theme="allright"] :is(.start-option, .routine-select-card, .exercise-card, .routine-card, .exercise-list-card, .detail-exercise) {
   background: var(--surface);
   color: var(--ink);
   border: 1px solid var(--line);
@@ -159,17 +159,16 @@
 :root[data-theme="allright"] .progress-track { background: #48513e; }
 :root[data-theme="allright"] .detail-summary > div { border-color: #536346; }
 :root[data-theme="allright"] .exercise-card > header,
-:root[data-theme="allright"] :is(.set-row, .record-card p, .history-list article, .detail-exercise > div > p) { border-color: var(--line); }
+:root[data-theme="allright"] :is(.set-row, .history-list article, .set-record-list p) { border-color: var(--line); }
 :root[data-theme="allright"] .set-head { color: var(--khaki); }
 :root[data-theme="allright"] .set-row.completed { background: #2e3a29; }
 :root[data-theme="allright"] .set-row label input,
-:root[data-theme="allright"] .routine-set-row label input,
 :root[data-theme="allright"] :is(.auth-form input, .large-input) {
   background: var(--deep);
   color: var(--ink);
   border-color: var(--line);
 }
-:root[data-theme="allright"] :is(.set-row label input, .routine-set-row label input, .auth-form input, .large-input):focus {
+:root[data-theme="allright"] :is(.set-row label input, .auth-form input, .large-input):focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px #a3b66d26;
 }
@@ -199,7 +198,7 @@
   background: #394530;
   color: var(--accent);
 }
-:root[data-theme="allright"] .detail-exercise > div > p.completed i { background: #394530; color: var(--accent); }
+:root[data-theme="allright"] .set-record-list p.completed i { background: #394530; color: var(--accent); }
 
 /* Modal, picker, and authentication */
 :root[data-theme="allright"] .modal-backdrop { background: #080b08bf; }
@@ -230,5 +229,4 @@
   :root[data-theme="allright"] .bottom-nav { background: #20261d; border-color: #536346; }
   :root[data-theme="allright"] .bottom-nav-item { color: var(--muted); }
   :root[data-theme="allright"] .bottom-nav-item.active { background: #394530; color: var(--ink); }
-  :root[data-theme="allright"] .form-actions { background: #10130fe6; }
 }

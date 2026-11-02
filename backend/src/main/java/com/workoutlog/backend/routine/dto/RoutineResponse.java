@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.List;
 
 import com.workoutlog.backend.exercise.BodyPart;
+import com.workoutlog.backend.exercise.SetType;
 import com.workoutlog.backend.routine.ExerciseInRoutine;
 import com.workoutlog.backend.routine.Routine;
 import com.workoutlog.backend.routine.RoutineSet;
@@ -31,6 +32,7 @@ public record RoutineResponse(
 			String name,
 			BodyPart bodyPart,
 			Integer exerciseOrder,
+			Integer groupNumber,
 			Integer targetSets,
 			Integer targetReps,
 			List<RoutineSetResponse> sets) {
@@ -38,14 +40,15 @@ public record RoutineResponse(
 		static RoutineExerciseResponse from(ExerciseInRoutine configuredExercise) {
 			return new RoutineExerciseResponse(configuredExercise.getExercise().getId(),
 					configuredExercise.getExercise().getName(), configuredExercise.getExercise().getBodyPart(),
-					configuredExercise.getExerciseOrder(), configuredExercise.getTargetSets(),
+					configuredExercise.getExerciseOrder(), configuredExercise.getGroupNumber(), configuredExercise.getTargetSets(),
 					configuredExercise.getTargetReps(), configuredExercise.getSets().stream()
 							.sorted(Comparator.comparing(RoutineSet::getSetNumber))
-							.map(set -> new RoutineSetResponse(set.getSetNumber(), set.getWeight(), set.getReps()))
+							.map(set -> new RoutineSetResponse(set.getSetNumber(), set.getWeight(), set.getReps(),
+									set.getSetType()))
 							.toList());
 		}
 	}
 
-	public record RoutineSetResponse(Integer setNumber, BigDecimal weight, Integer reps) {
+	public record RoutineSetResponse(Integer setNumber, BigDecimal weight, Integer reps, SetType setType) {
 	}
 }

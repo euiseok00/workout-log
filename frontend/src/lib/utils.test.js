@@ -1,6 +1,15 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { volumeChange, volumeDifference } from './utils.js'
+import { addDays, formatRange, mondayOf, volumeChange, volumeDifference } from './utils.js'
+
+test('period helpers cross month boundaries and start weeks on Monday', () => {
+  assert.equal(addDays('2026-10-30', 5), '2026-11-04')
+  assert.equal(addDays('2026-03-01', -1), '2026-02-28')
+  assert.equal(mondayOf('2026-11-01'), '2026-10-26')
+  assert.equal(mondayOf('2026-11-02'), '2026-11-02')
+  assert.equal(formatRange('2026-10-21', '2026-10-25'), '10.21–10.25')
+  assert.equal(formatRange('2026-10-21', '2026-10-21'), '10.21')
+})
 
 test('weekly volume change handles increases, decreases, and zero baselines', () => {
   assert.equal(volumeChange(500, 300), '+66.7%')

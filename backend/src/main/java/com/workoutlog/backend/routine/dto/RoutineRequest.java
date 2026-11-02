@@ -3,6 +3,8 @@ package com.workoutlog.backend.routine.dto;
 import java.math.BigDecimal;
 import java.util.List;
 
+import com.workoutlog.backend.exercise.SetType;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -26,6 +28,8 @@ public record RoutineRequest(
 			@NotNull(message = "운동 순서는 필수입니다.")
 			@Positive(message = "운동 순서는 양수여야 합니다.")
 			Integer exerciseOrder,
+			@Positive(message = "묶음 번호는 양수여야 합니다.")
+			Integer groupNumber,
 			@Positive(message = "목표 세트 수는 양수여야 합니다.")
 			Integer targetSets,
 			@Positive(message = "목표 반복 수는 양수여야 합니다.")
@@ -36,6 +40,7 @@ public record RoutineRequest(
 	public record RoutineSetRequest(
 			@NotNull @Positive Integer setNumber,
 			@NotNull @DecimalMin("0.00") @Digits(integer = 4, fraction = 2) BigDecimal weight,
-			@NotNull @jakarta.validation.constraints.PositiveOrZero Integer reps) {
+			@NotNull @jakarta.validation.constraints.PositiveOrZero Integer reps,
+			SetType setType) {
 	}
 }

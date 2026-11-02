@@ -1,6 +1,7 @@
 package com.workoutlog.backend.statistics;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -16,6 +17,7 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.jayway.jsonpath.JsonPath;
 import com.workoutlog.backend.PostgresIntegrationTest;
 import com.workoutlog.backend.exercise.BodyPart;
 import com.workoutlog.backend.exercise.Exercise;
@@ -208,6 +210,156 @@ class StatisticsApiTests extends PostgresIntegrationTest {
 				.with(jwtFor(user)))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+	}
+
+	@Test
+	void comparesBodyPartVolumeAcrossAdjacentCustomPeriods() throws Exception {
+		User user = saveUser("stats_period");
+		User other = saveUser("stats_period_other");
+		Integer bench = defaultExerciseId("벤치프레스");
+		Integer squat = defaultExerciseId("스쿼트");
+		LocalDate from = LocalDate.of(2026, 1, 21);
+		createSession(user, from.minusDays(5), bench, completedSet(1, "10.00", 10));
+		createSession(user, from.minusDays(1), bench, completedSet(1, "20.00", 10));
+		createSession(user, from, bench, completedSet(1, "30.00", 10));
+		createSession(user, from.plusDays(4), squat, completedSet(1, "40.00", 10));
+		createSession(user, from.plusDays(5), squat, completedSet(1, "50.00", 10));
+		createSession(user, from.plusDays(10), squat, completedSet(1, "60.00", 10));
+		createSession(user, from.minusDays(6), bench, completedSet(1, "70.00", 10));
+		createSession(other, from, bench, completedSet(1, "999.00", 10));
+
+		mockMvc.perform(get("/api/statistics/volume-periods")
+				.param("from", from.toString()).param("days", "5").with(jwtFor(user)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.previous.from").value("2026-01-16"))
+				.andExpect(jsonPath("$.previous.to").value("2026-01-20"))
+				.andExpect(jsonPath("$.previous.totalVolume").value(300.0))
+				.andExpect(jsonPath("$.selected.to").value("2026-01-25"))
+				.andExpect(jsonPath("$.selected.totalVolume").value(700.0))
+				.andExpect(jsonPath("$.selected.bodyParts[0].bodyPart").value("CHEST"))
+				.andExpect(jsonPath("$.selected.bodyParts[0].volume").value(300.0))
+				.andExpect(jsonPath("$.selected.bodyParts[4].bodyPart").value("LEGS"))
+				.andExpect(jsonPath("$.selected.bodyParts[4].volume").value(400.0))
+				.andExpect(jsonPath("$.next.from").value("2026-01-26"))
+				.andExpect(jsonPath("$.next.totalVolume").value(500.0));
+
+		mockMvc.perform(get("/api/statistics/volume-periods")
+				.param("from", from.toString()).param("days", "0").with(jwtFor(user)))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+		mockMvc.perform(get("/api/statistics/volume-periods")
+				.param("from", from.toString()).param("days", "366").with(jwtFor(user)))
+				.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void returnsRoutineHistoryForOwnerAndFollowsSessionAndRoutineDeletion() throws Exception {
+		User user = saveUser("stats_routine");
+		User other = saveUser("stats_routine_other");
+		Integer bench = defaultExerciseId("벤치프레스");
+		Integer routineId = createRoutine(user, bench);
+		Integer older = createRoutineSession(user, routineId, bench, LocalDate.of(2026, 1, 1), "50.00");
+		Integer newer = createRoutineSession(user, routineId, bench, LocalDate.of(2026, 1, 8), "60.00");
+		createSession(user, LocalDate.of(2026, 1, 9), bench, completedSet(1, "999.00", 10));
+
+		mockMvc.perform(get("/api/statistics/routines/{id}", routineId).with(jwtFor(user)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.name").value("추이 루틴"))
+				.andExpect(jsonPath("$.sessionCount").value(2))
+				.andExpect(jsonPath("$.totalVolume").value(1100.0))
+				.andExpect(jsonPath("$.maxWeight").value(60.0))
+				.andExpect(jsonPath("$.sessions[0].sessionId").value(newer))
+				.andExpect(jsonPath("$.sessions[0].totalVolume").value(600.0))
+				.andExpect(jsonPath("$.sessions[0].exercises[0].exerciseId").value(bench))
+				.andExpect(jsonPath("$.sessions[1].sessionId").value(older));
+
+		mockMvc.perform(get("/api/statistics/routines/{id}", routineId)
+				.param("from", "2026-01-05").with(jwtFor(user)))
+				.andExpect(jsonPath("$.sessionCount").value(1));
+		mockMvc.perform(get("/api/statistics/routines/{id}", routineId).with(jwtFor(other)))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.code").value("ROUTINE_NOT_FOUND"));
+
+		mockMvc.perform(delete("/api/workout-sessions/{id}", newer).with(jwtFor(user)))
+				.andExpect(status().isNoContent());
+		mockMvc.perform(get("/api/statistics/routines/{id}", routineId).with(jwtFor(user)))
+				.andExpect(jsonPath("$.sessionCount").value(1))
+				.andExpect(jsonPath("$.totalVolume").value(500.0));
+
+		mockMvc.perform(delete("/api/routines/{id}", routineId).with(jwtFor(user)))
+				.andExpect(status().isNoContent());
+		mockMvc.perform(get("/api/statistics/routines/{id}", routineId).with(jwtFor(user)))
+				.andExpect(status().isNotFound());
+		mockMvc.perform(get("/api/workout-sessions/{id}", older).with(jwtFor(user)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.routineName").value("추이 루틴"));
+	}
+
+	@Test
+	void excludesWarmupsAndCountsDropAndGroupedSetsByTheirRules() throws Exception {
+		User user = saveUser("stats_set_rules");
+		Integer bench = defaultExerciseId("벤치프레스");
+		Integer row = defaultExerciseId("바벨 로우");
+		Integer routineId = createRoutine(user, bench);
+		LocalDate date = LocalDate.of(2026, 1, 12);
+		mockMvc.perform(post("/api/workout-sessions").with(jwtFor(user))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{"workoutDate":"%s","routineId":%d,"exercises":[
+						  {"exerciseId":%d,"exerciseOrder":1,"groupNumber":1,"sets":[
+						    {"setNumber":1,"weight":100.00,"reps":10,"completed":true,"setType":"WARMUP"},
+						    {"setNumber":2,"weight":60.00,"reps":10,"completed":true,"setType":"SUPER"},
+						    {"setNumber":3,"weight":60.00,"reps":10,"completed":true,"setType":"SUPER"},
+						    {"setNumber":4,"weight":40.00,"reps":10,"completed":true,"setType":"DROP"}]},
+						  {"exerciseId":%d,"exerciseOrder":2,"groupNumber":1,"sets":[
+						    {"setNumber":1,"weight":50.00,"reps":10,"completed":true,"setType":"SUPER"},
+						    {"setNumber":2,"weight":50.00,"reps":10,"completed":true,"setType":"SUPER"},
+						    {"setNumber":3,"weight":50.00,"reps":10,"completed":false,"setType":"SUPER"}]}
+						]}
+						""".formatted(date, routineId, bench, row)))
+				.andExpect(status().isCreated());
+
+		mockMvc.perform(get("/api/statistics/summary").with(jwtFor(user)))
+				.andExpect(jsonPath("$.completedSetCount").value(2))
+				.andExpect(jsonPath("$.totalReps").value(50))
+				.andExpect(jsonPath("$.totalVolume").value(2600.0));
+		mockMvc.perform(get("/api/statistics/dashboard").param("today", date.toString()).with(jwtFor(user)))
+				.andExpect(jsonPath("$.currentWeekCompletedSetCount").value(2))
+				.andExpect(jsonPath("$.currentWeekVolume").value(2600.0));
+		mockMvc.perform(get("/api/statistics/exercises/{id}", bench).with(jwtFor(user)))
+				.andExpect(jsonPath("$.completedSetCount").value(2))
+				.andExpect(jsonPath("$.totalVolume").value(1600.0))
+				.andExpect(jsonPath("$.maxWeight").value(60.0));
+		mockMvc.perform(get("/api/statistics/routines/{id}", routineId).with(jwtFor(user)))
+				.andExpect(jsonPath("$.completedSetCount").value(2))
+				.andExpect(jsonPath("$.totalVolume").value(2600.0))
+				.andExpect(jsonPath("$.sessions[0].completedSetCount").value(2))
+				.andExpect(jsonPath("$.sessions[0].exercises[0].completedSetCount").value(2))
+				.andExpect(jsonPath("$.sessions[0].exercises[1].totalVolume").value(1000.0));
+		mockMvc.perform(get("/api/statistics/volume-periods")
+				.param("from", date.toString()).param("days", "1").with(jwtFor(user)))
+				.andExpect(jsonPath("$.selected.totalVolume").value(2600.0));
+	}
+
+	private Integer createRoutine(User user, Integer exerciseId) throws Exception {
+		String response = mockMvc.perform(post("/api/routines").with(jwtFor(user))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{"name":"추이 루틴","exercises":[{"exerciseId":%d,"exerciseOrder":1,"targetSets":1,"targetReps":10}]}
+						""".formatted(exerciseId)))
+				.andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+		return JsonPath.read(response, "$.id");
+	}
+
+	private Integer createRoutineSession(User user, Integer routineId, Integer exerciseId, LocalDate date,
+			String weight) throws Exception {
+		String response = mockMvc.perform(post("/api/workout-sessions").with(jwtFor(user))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{"workoutDate":"%s","routineId":%d,"exercises":[{"exerciseId":%d,"exerciseOrder":1,"sets":[%s]}]}
+						""".formatted(date, routineId, exerciseId, completedSet(1, weight, 10))))
+				.andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+		return JsonPath.read(response, "$.id");
 	}
 
 	private void createSession(User user, LocalDate workoutDate, Integer exerciseId, String sets) throws Exception {

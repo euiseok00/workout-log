@@ -282,6 +282,83 @@ class RoutineApiTests extends PostgresIntegrationTest {
 		return JsonPath.read(response, "$.id");
 	}
 
+	@Test
+	void keepsSetTypesAndGroupsThroughRoutineSessionAndCopyFlows() throws Exception {
+		User owner = saveUser("set_type_owner");
+		Integer bench = defaultExerciseId("벤치프레스");
+		Integer squat = defaultExerciseId("스쿼트");
+		String exercises = """
+				[{"exerciseId":%d,"exerciseOrder":1,"groupNumber":1,"sets":[
+				  {"setNumber":1,"weight":20,"reps":10,"setType":"WARMUP","completed":true},
+				  {"setNumber":2,"weight":60,"reps":8,"setType":"SUPER","completed":true}]},
+				 {"exerciseId":%d,"exerciseOrder":2,"groupNumber":1,"sets":[
+				  {"setNumber":1,"weight":80,"reps":8,"setType":"SUPER","completed":true}]}]
+				""".formatted(bench, squat);
+
+		Integer routineId = createRoutine(owner, "슈퍼 루틴", exercises);
+		mockMvc.perform(get("/api/routines/{id}", routineId).with(jwtFor(owner)))
+				.andExpect(jsonPath("$.exercises[0].groupNumber").value(1))
+				.andExpect(jsonPath("$.exercises[0].sets[0].setType").value("WARMUP"))
+				.andExpect(jsonPath("$.exercises[1].sets[0].setType").value("SUPER"));
+
+		String response = mockMvc.perform(post("/api/workout-sessions").with(jwtFor(owner))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{"workoutDate":"%s","routineId":null,"exercises":%s}
+						""".formatted(java.time.LocalDate.now(), exercises)))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.exercises[1].groupNumber").value(1))
+				.andExpect(jsonPath("$.exercises[1].sets[0].setType").value("SUPER"))
+				.andReturn().getResponse().getContentAsString();
+		Integer sessionId = JsonPath.read(response, "$.id");
+
+		mockMvc.perform(get("/api/exercises/{id}/records", bench).with(jwtFor(owner)))
+				.andExpect(jsonPath("$[0].sets[0].setType").value("WARMUP"));
+
+		mockMvc.perform(post("/api/routines/from-session/{id}", sessionId).with(jwtFor(owner))
+				.contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"복사 루틴\"}"))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.exercises[0].groupNumber").value(1))
+				.andExpect(jsonPath("$.exercises[0].sets[1].setType").value("SUPER"));
+
+		mockMvc.perform(put("/api/workout-sessions/{id}", sessionId).with(jwtFor(owner))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{"workoutDate":"%s","routineId":null,"exercises":[{"exerciseId":%d,"exerciseOrder":1,
+						"sets":[{"setNumber":1,"weight":60,"reps":8,"completed":true}]}]}
+						""".formatted(java.time.LocalDate.now(), bench)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.exercises[0].groupNumber").value(org.hamcrest.Matchers.nullValue()))
+				.andExpect(jsonPath("$.exercises[0].sets[0].setType").value("WORKING"));
+		org.assertj.core.api.Assertions.assertThat(jdbcTemplate.queryForObject(
+				"SELECT count(*) FROM exercise_set", Integer.class)).isEqualTo(1);
+	}
+
+	@Test
+	void rejectsGroupsThatDoNotMatchSetTypes() throws Exception {
+		User owner = saveUser("set_type_invalid");
+		Integer bench = defaultExerciseId("벤치프레스");
+		Integer squat = defaultExerciseId("스쿼트");
+		String template = """
+				[{"exerciseId":%d,"exerciseOrder":1,%s"sets":[{"setNumber":1,"weight":60,"reps":8,"setType":"%s"}]}%s]
+				""";
+		String second = """
+				,{"exerciseId":%d,"exerciseOrder":2,"groupNumber":1,"sets":[{"setNumber":1,"weight":60,"reps":8,"setType":"%%s"}]}
+				""".formatted(squat);
+
+		assertBadRequest(owner, routineBody("미묶음 슈퍼", template.formatted(bench, "", "SUPER", "")));
+		assertBadRequest(owner, routineBody("한 개 묶음", template.formatted(bench, "\"groupNumber\":1,", "WORKING", "")));
+		assertBadRequest(owner, routineBody("두 개 트라이",
+				template.formatted(bench, "\"groupNumber\":1,", "TRI", second.formatted("TRI"))));
+		assertBadRequest(owner, routineBody("두 개 자이언트",
+				template.formatted(bench, "\"groupNumber\":1,", "GIANT", second.formatted("GIANT"))));
+
+		mockMvc.perform(post("/api/routines").with(jwtFor(owner))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(routineBody("없는 유형", template.formatted(bench, "", "NOPE", ""))))
+				.andExpect(status().isBadRequest());
+	}
+
 	private void assertBadRequest(User user, String body) throws Exception {
 		mockMvc.perform(post("/api/routines")
 				.with(jwtFor(user))

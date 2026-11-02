@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.List;
 
 import com.workoutlog.backend.exercise.Exercise;
+import com.workoutlog.backend.exercise.SetType;
 import com.workoutlog.backend.workout.ExerciseInSession;
 import com.workoutlog.backend.workout.ExerciseSet;
 import com.workoutlog.backend.workout.WorkoutSession;
@@ -22,10 +23,12 @@ public record ExerciseRecordResponse(Integer sessionId, LocalDate workoutDate, I
 						.toList());
 	}
 
-	public record ExerciseRecordSetResponse(Integer setNumber, BigDecimal weight, Integer reps, boolean completed) {
+	public record ExerciseRecordSetResponse(Integer setNumber, BigDecimal weight, Integer reps, boolean completed,
+			SetType setType) {
 
 		private static ExerciseRecordSetResponse from(ExerciseSet set) {
-			return new ExerciseRecordSetResponse(set.getSetNumber(), set.getWeight(), set.getReps(), set.isCompleted());
+			return new ExerciseRecordSetResponse(set.getSetNumber(), set.getWeight(), set.getReps(), set.isCompleted(),
+					set.getSetType());
 		}
 	}
 }

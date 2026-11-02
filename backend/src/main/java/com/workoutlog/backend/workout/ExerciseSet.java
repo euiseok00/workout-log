@@ -2,8 +2,12 @@ package com.workoutlog.backend.workout;
 
 import java.math.BigDecimal;
 
+import com.workoutlog.backend.exercise.SetType;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -38,16 +42,21 @@ public class ExerciseSet {
 	@Column(nullable = false)
 	private boolean completed;
 
+	@Enumerated(EnumType.STRING)
+	@Column(name = "set_type", nullable = false, length = 20)
+	private SetType setType = SetType.WORKING;
+
 	protected ExerciseSet() {
 	}
 
 	public ExerciseSet(ExerciseInSession exerciseInSession, Integer setNumber, BigDecimal weight, Integer reps,
-			boolean completed) {
+			boolean completed, SetType setType) {
 		this.exerciseInSession = exerciseInSession;
 		this.setNumber = setNumber;
 		this.weight = weight;
 		this.reps = reps;
 		this.completed = completed;
+		this.setType = setType == null ? SetType.WORKING : setType;
 	}
 
 	public Integer getId() {
@@ -64,6 +73,10 @@ public class ExerciseSet {
 
 	public Integer getReps() {
 		return reps;
+	}
+
+	public SetType getSetType() {
+		return setType;
 	}
 
 	public boolean isCompleted() {

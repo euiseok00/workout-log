@@ -10,7 +10,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.workoutlog.backend.common.error.RequestValidationException;
 import com.workoutlog.backend.exercise.Exercise;
+import com.workoutlog.backend.exercise.ExerciseGroups;
 import com.workoutlog.backend.exercise.ExerciseLookup;
+import com.workoutlog.backend.exercise.SetType;
 import com.workoutlog.backend.routine.Routine;
 import com.workoutlog.backend.routine.RoutineRepository;
 import com.workoutlog.backend.workout.dto.WorkoutSessionRequest;
@@ -112,6 +114,11 @@ public class WorkoutSessionService {
 					request.sets().stream().map(SessionSetRequest::setNumber).toList(), "sets",
 					"세트 번호는 중복될 수 없습니다.");
 		}
+		ExerciseGroups.validate(requests.stream()
+				.map(request -> new ExerciseGroups.Member(request.groupNumber(), request.sets().stream()
+						.map(set -> set.setType() == null ? SetType.WORKING : set.setType())
+						.toList()))
+				.toList());
 		return exerciseLookup.loadUsable(
 				requests.stream().map(SessionExerciseRequest::exerciseId).collect(Collectors.toSet()), userId);
 	}
@@ -120,10 +127,10 @@ public class WorkoutSessionService {
 			Map<Integer, Exercise> exercises) {
 		for (SessionExerciseRequest request : requests) {
 			ExerciseInSession exerciseInSession = new ExerciseInSession(session,
-					exercises.get(request.exerciseId()), request.exerciseOrder());
+					exercises.get(request.exerciseId()), request.exerciseOrder(), request.groupNumber());
 			for (SessionSetRequest set : request.sets()) {
 				exerciseInSession.addSet(new ExerciseSet(exerciseInSession, set.setNumber(), set.weight(), set.reps(),
-						set.completed()));
+						set.completed(), set.setType()));
 			}
 			session.addExercise(exerciseInSession);
 		}

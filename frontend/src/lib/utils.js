@@ -35,8 +35,33 @@ export function formatDate(value, withYear = true) {
   return withYear ? `${year}년 ${month}월 ${day}일` : `${month}월 ${day}일`
 }
 
+export function addDays(value, days) {
+  const date = new Date(`${value}T00:00:00Z`)
+  date.setUTCDate(date.getUTCDate() + days)
+  return date.toISOString().slice(0, 10)
+}
+
+export function mondayOf(value) {
+  const weekday = new Date(`${value}T00:00:00Z`).getUTCDay()
+  return addDays(value, -((weekday + 6) % 7))
+}
+
+export function formatRange(from, to) {
+  const short = (value) => value.slice(5).replace('-', '.')
+  return from === to ? short(from) : `${short(from)}–${short(to)}`
+}
+
 export function todayString() {
   const now = new Date()
   const offset = now.getTimezoneOffset() * 60000
   return new Date(now.getTime() - offset).toISOString().slice(0, 10)
+}
+
+export function changeClass(current, previous) {
+  const difference = Number(current) - Number(previous)
+  return difference > 0 ? 'volume-increase' : difference < 0 ? 'volume-decrease' : ''
+}
+
+export function filterExercises(exercises, filter, search) {
+  return exercises.filter((exercise) => (filter === 'ALL' || exercise.bodyPart === filter) && exercise.name.toLowerCase().includes(search.toLowerCase()))
 }

@@ -29,6 +29,7 @@
 .theme-selector option { background: var(--surface); color: var(--ink); }
 
 @media (max-width: 760px) {
-  .theme-selector { top: 8px; right: 12px; }
+  .theme-selector { position: absolute; top: 8px; right: 12px; }
+  .theme-selector select { font-size: 16px; }
   .main-content .page { padding-top: 72px; }
 }

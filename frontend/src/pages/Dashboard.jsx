@@ -4,8 +4,10 @@ import { useCharacterEvent } from '../themes/context/characterEventContext'
 import { CHARACTER_EVENTS } from '../themes/context/characterEvents'
 import { themes } from '../themes'
 import { useTheme } from '../themes/context/themeContext'
+import BodyVolumeSection from '../components/BodyVolumeSection'
 import { EmptyState, ErrorMessage, Icon, Link, Loading, PageHeader } from '../components/ui'
-import { bodyPartLabel, formatDate, formatNumber, todayString, volumeChange, volumeDifference } from '../lib/utils'
+import { countSets } from '../lib/setGroups'
+import { formatDate, formatNumber, todayString, volumeChange } from '../lib/utils'
 
 function isoDate(year, month, day) {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
@@ -61,6 +63,7 @@ export default function Dashboard({ navigate, auth }) {
   for (let index = 0; index < firstDay; index += 1) days.push(null)
   for (let day = 1; day <= lastDate; day += 1) days.push(day)
   const selectedSessions = byDate[selected] || []
+  const addRecord = selected <= todayString() && <Link to="/workout" navigate={() => navigate('/workout', false, { workoutDate: selected })} className="secondary-button">{selected === todayString() ? '운동 시작' : '이 날짜에 기록 추가'}</Link>
   return (
     <div className="page dashboard-page">
       <PageHeader eyebrow={`${auth.user.loginId}님의 기록`} title="오늘도 나답게, 한 세트씩" action={<span className="today-chip"><Icon name="calendar" size={17}/>{formatDate(todayString(), false)}</span>}/>
@@ -86,26 +89,13 @@ export default function Dashboard({ navigate, auth }) {
           <section className="day-sessions">
             <header className="section-header"><div><p className="eyebrow">DAILY LOG</p><h2>{formatDate(selected)}</h2></div><span className="count-badge">{selectedSessions.length}개</span></header>
             <div className="session-list">{selectedSessions.length ? selectedSessions.map((session) => {
-              const completed = session.exercises.flatMap((exercise) => exercise.sets).filter((set) => set.completed).length
+              const completed = countSets(session.exercises, true)
               return <Link to={`/workouts/${session.id}`} navigate={openRecord} className="session-card" key={session.id}><span className="session-icon"><Icon name="workout"/></span><div><h3>{session.routineName || '자유 운동'}</h3><p>운동 {session.exercises.length}개 · 완료 {completed}세트</p></div><Icon name="chevron"/></Link>
-            }) : <EmptyState icon="calendar" title="이날 기록된 운동이 없어요" description="가볍게 오늘의 운동을 시작해보세요." action={<Link to="/workout" navigate={navigate} className="secondary-button">운동 시작</Link>}/>}</div>
+            }) : <EmptyState icon="calendar" title="이날 기록된 운동이 없어요" description={selected > todayString() ? '미래 날짜에는 기록할 수 없어요.' : selected === todayString() ? '가볍게 오늘의 운동을 시작해보세요.' : '지난 운동을 이 날짜에 기록할 수 있어요.'} action={addRecord}/>}</div>
+            {selectedSessions.length > 0 && addRecord && <div className="day-add-record">{addRecord}</div>}
           </section>
         </div>
-        <section className="card body-volume-section" aria-label="부위별 주간 볼륨">
-          <header className="section-header"><div><p className="eyebrow">WEEKLY VOLUME</p><h2>부위별 주간 볼륨</h2></div><span className="count-badge">월요일–일요일</span></header>
-          <div className="body-volume-table-wrap"><table className="body-volume-table">
-            <thead><tr><th scope="col">부위</th><th scope="col">이번 주</th><th scope="col">지난주</th><th scope="col">증감 중량</th></tr></thead>
-            <tbody>{stats?.bodyPartVolumes.map((part) => {
-              const difference = Number(part.currentWeekVolume) - Number(part.previousWeekVolume)
-              return <tr key={part.bodyPart}>
-                <th scope="row">{bodyPartLabel(part.bodyPart)}</th>
-                <td>{formatNumber(part.currentWeekVolume, 2)} kg</td>
-                <td>{formatNumber(part.previousWeekVolume, 2)} kg</td>
-                <td className={difference > 0 ? 'volume-increase' : difference < 0 ? 'volume-decrease' : ''}>{volumeDifference(part.currentWeekVolume, part.previousWeekVolume)}</td>
-              </tr>
-            })}</tbody>
-          </table></div>
-        </section>
+        <BodyVolumeSection auth={auth}/>
       </>}
     </div>
   )
