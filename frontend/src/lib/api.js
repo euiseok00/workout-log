@@ -16,7 +16,7 @@ export function clearAuth() {
   localStorage.removeItem(AUTH_KEY)
 }
 
-export class ApiError extends Error {
+class ApiError extends Error {
   constructor(status, problem) {
     super(problem?.detail || '요청을 처리하지 못했습니다.')
     this.status = status

@@ -14,7 +14,7 @@ export default function WorkoutCalendar({ cursor, selected, byDate, onMonthChang
   for (let index = 0; index < firstDay; index += 1) days.push(null)
   for (let day = 1; day <= lastDate; day += 1) days.push(day)
   return <section className="card calendar-card">
-    <header className="section-header"><div><p className="eyebrow">WORKOUT CALENDAR</p><h2>{year}년 {month + 1}월</h2></div><div className="month-buttons"><button className="icon-button" onClick={() => onMonthChange(new Date(year, month - 1, 1))} aria-label="이전 달"><Icon name="back"/></button><button className="icon-button" onClick={() => onMonthChange(new Date(year, month + 1, 1))} aria-label="다음 달"><Icon name="chevron"/></button></div></header>
+    <header className="section-header"><div><h2>{year}년 {month + 1}월</h2></div><div className="month-buttons"><button className="icon-button" onClick={() => onMonthChange(new Date(year, month - 1, 1))} aria-label="이전 달"><Icon name="back"/></button><button className="icon-button" onClick={() => onMonthChange(new Date(year, month + 1, 1))} aria-label="다음 달"><Icon name="chevron"/></button></div></header>
     <div className="calendar-weekdays">{['일','월','화','수','목','금','토'].map((day) => <span key={day}>{day}</span>)}</div>
     <div className="calendar-grid">{days.map((day, index) => {
       if (!day) return <span key={`empty-${index}`} />

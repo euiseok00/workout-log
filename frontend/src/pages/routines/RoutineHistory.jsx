@@ -40,10 +40,10 @@ export default function RoutineHistory({ id, navigate }) {
   }, [id])
   if (!stats) return <div className="page"><PageHeader back="/routines" navigate={navigate} title="루틴 기록"/><ErrorMessage error={error}/>{!error && <Loading/>}</div>
   const cards = [['운동 횟수', stats.sessionCount, '회'], ['총 볼륨', stats.totalVolume, 'kg'], ['완료 세트', stats.completedSetCount, '세트'], ['최대 중량', stats.maxWeight, 'kg']]
-  return <div className="page"><PageHeader back="/routines" navigate={navigate} eyebrow="ROUTINE PROGRESS" title={stats.name}/>
+  return <div className="page"><PageHeader back="/routines" navigate={navigate} title={stats.name}/>
     <StatCards cards={cards}/>
-    {stats.sessions.length > 1 && <section className="card history-section"><header className="section-header"><div><p className="eyebrow">TREND</p><h2>세션별 총 볼륨</h2></div></header><VolumeTrend sessions={[...stats.sessions].reverse()}/></section>}
-    <section className="card history-section"><header className="section-header"><div><p className="eyebrow">HISTORY</p><h2>회차별 변화</h2></div><span className="count-badge">{stats.sessions.length}회</span></header>
+    {stats.sessions.length > 1 && <section className="card history-section"><header className="section-header"><div><h2>세션별 총 볼륨</h2></div></header><VolumeTrend sessions={[...stats.sessions].reverse()}/></section>}
+    <section className="card history-section"><header className="section-header"><div><h2>회차별 변화</h2></div><span className="count-badge">{stats.sessions.length}회</span></header>
       {stats.sessions.length ? <div className="routine-history-list">{stats.sessions.map((session, index) => {
         const previous = stats.sessions[index + 1]
         return <Link to={`/workouts/${session.sessionId}`} navigate={navigate} className="routine-history-row" key={session.sessionId}>

@@ -48,12 +48,12 @@ export default function BodyVolumeSection({ auth }) {
 
   const nextIsFuture = data ? data.next.from > today : true
   return <section className="card body-volume-section" aria-label="부위별 기간 볼륨">
-    <header className="section-header"><div><p className="eyebrow">VOLUME CHECK</p><h2>{mode === 'week' ? '부위별 주간 볼륨' : `부위별 ${days}일 볼륨`}</h2></div><div className="chip-row"><button className={`chip ${mode === 'week' ? 'active' : ''}`} onClick={showWeek}>주별</button><button className={`chip ${mode === 'custom' ? 'active' : ''}`} onClick={showCustom}>일수 지정</button></div></header>
+    <header className="section-header"><div><h2>{mode === 'week' ? '부위별 주간 볼륨' : `부위별 ${days}일 볼륨`}</h2></div><div className="chip-row"><button className={`chip ${mode === 'week' ? 'active' : ''}`} onClick={showWeek}>주별</button><button className={`chip ${mode === 'custom' ? 'active' : ''}`} onClick={showCustom}>일수 지정</button></div></header>
     <div className="volume-controls">
       <button className="icon-button" onClick={() => setFrom(addDays(from, -days))} aria-label={`이전 ${days}일`}><Icon name="back"/></button>
       {mode === 'custom'
         ? <><label>시작일<input type="date" value={from} max={today} onChange={(event) => event.target.value && setFrom(event.target.value)}/></label><label>기간<input type="number" min="1" max={MAX_DAYS} step="1" value={daysInput} onChange={(event) => changeDays(event.target.value)} onBlur={() => setDaysInput(String(days))}/>일</label></>
-        : <span className="count-badge">월요일–일요일</span>}
+        : <span className="count-badge">월요일부터 일요일까지</span>}
       <button className="icon-button" onClick={() => setFrom(addDays(from, days))} disabled={nextIsFuture} aria-label={`다음 ${days}일`}><Icon name="chevron"/></button>
     </div>
     <ErrorMessage error={error}/>

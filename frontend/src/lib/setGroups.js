@@ -1,4 +1,4 @@
-export const SET_TYPES = [
+const SET_TYPES = [
   ['WORKING', '워킹'],
   ['WARMUP', '웜업'],
   ['SUPER', '슈퍼'],

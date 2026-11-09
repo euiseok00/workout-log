@@ -11,7 +11,6 @@ export function Icon({ name, size = 22 }) {
     strokeWidth: 1.9,
     strokeLinecap: 'round',
     strokeLinejoin: 'round',
-    'aria-hidden': true,
   }
   const paths = {
     dashboard: <><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></>,
@@ -24,14 +23,13 @@ export function Icon({ name, size = 22 }) {
     search: <><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></>,
     calendar: <><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></>,
     logout: <><path d="M10 17l5-5-5-5M15 12H3"/><path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"/></>,
-    more: <><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></>,
     drag: <><path d="M8 6h.01M16 6h.01M8 12h.01M16 12h.01M8 18h.01M16 18h.01" strokeWidth="3"/></>,
     check: <path d="m5 12 4 4L19 6"/>,
     history: <><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></>,
     close: <path d="M6 6l12 12M18 6 6 18"/>,
     user: <><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></>,
   }
-  return <svg {...common}>{paths[name]}</svg>
+  return <svg {...common} aria-hidden="true">{paths[name]}</svg>
 }
 
 export function Link({ to, navigate, className, children, ...props }) {
@@ -52,14 +50,14 @@ export function Link({ to, navigate, className, children, ...props }) {
   )
 }
 
-export function PageHeader({ title, eyebrow, action, back, navigate }) {
+export function PageHeader({ title, meta, action, back, navigate }) {
   return (
     <header className="page-header">
       <div className="page-title-wrap">
         {back && <button type="button" className="icon-button" onClick={() => navigate(back)} aria-label="뒤로 가기"><Icon name="back" /></button>}
         <div>
-          {eyebrow && <p className="eyebrow">{eyebrow}</p>}
           <h1>{title}</h1>
+          {meta && <p className="page-meta">{meta}</p>}
         </div>
       </div>
       {action}
@@ -68,7 +66,7 @@ export function PageHeader({ title, eyebrow, action, back, navigate }) {
 }
 
 export function Loading() {
-  return <div className="loading" role="status"><span className="spinner" />불러오는 중...</div>
+  return <div className="loading" role="status"><span className="spinner" />불러오는 중…</div>
 }
 
 export function EmptyState({ icon = 'workout', title, description, action }) {
@@ -99,9 +97,9 @@ export function ConfirmModal({ title, message, confirmLabel = '삭제', onConfir
     setPending(true); setError(null)
     try { await onConfirm() } catch (requestError) { setError(requestError); setPending(false) }
   }
-  return <Modal title={title} onClose={() => !pending && onClose()}><p>{message}</p><ErrorMessage error={error}/><div className="detail-delete-actions"><button type="button" className="secondary-button" onClick={onClose} disabled={pending}>취소</button><button type="button" className="primary-button delete-confirm-button" onClick={confirm} disabled={pending}>{pending ? '처리 중...' : confirmLabel}</button></div></Modal>
+  return <Modal title={title} onClose={() => !pending && onClose()}><p>{message}</p><ErrorMessage error={error}/><div className="detail-delete-actions"><button type="button" className="secondary-button" onClick={onClose} disabled={pending}>취소</button><button type="button" className="primary-button delete-confirm-button" onClick={confirm} disabled={pending}>{pending ? '처리 중…' : confirmLabel}</button></div></Modal>
 }
 
 export function StatCards({ cards }) {
-  return <section className="stats-grid detail-stats">{cards.map(([label, value, unit], index) => <article className={`stat-card stat-${index + 1}`} key={label}><span>{label}</span><strong>{formatNumber(value, 2)}<small>{unit}</small></strong><i/></article>)}</section>
+  return <section className="stats-grid detail-stats">{cards.map(([label, value, unit]) => <article className="stat-card" key={label}><span>{label}</span><strong>{formatNumber(value, 2)}<small>{unit}</small></strong></article>)}</section>
 }

@@ -73,18 +73,18 @@ export default function RoutineForm({ id, navigate }) {
 
   if (loading || !exercises) return <div className="page"><PageHeader back="/routines" navigate={navigate} title="루틴"/><ErrorMessage error={error}/>{!error && <Loading/>}</div>
   return <><form className="page routine-form-page" onSubmit={save}>
-    <PageHeader back="/routines" navigate={navigate} eyebrow={editing ? 'EDIT ROUTINE' : 'NEW ROUTINE'} title={editing ? '루틴 수정' : '새 루틴 만들기'}/>
+    <PageHeader back="/routines" navigate={navigate} title={editing ? '루틴 수정' : '새 루틴 만들기'}/>
     {editing && <div className="detail-actions"><Link to={`/routines/${id}/history`} navigate={navigate} className="secondary-button compact">기록 변화</Link><button type="button" className="text-button danger" onClick={() => setDeleteOpen(true)}>루틴 삭제</button></div>}
     <ErrorMessage error={error}/>
     {!editing && <aside className="routine-import-notice"><p>완료한 운동 기록을 루틴으로 저장할 수도 있어요.</p><Link to="/dashboard" navigate={navigate} className="secondary-button compact">운동 기록에서 가져오기</Link></aside>}
     <section className="card form-section"><label className="field-label" htmlFor="routine-name">루틴 이름</label><input id="routine-name" className="large-input" value={name} onChange={(event) => setName(event.target.value)} placeholder="예: 가슴 루틴" maxLength="100" required/></section>
-    <section className="routine-builder"><header className="section-header"><div><p className="eyebrow">EXERCISE PLAN</p><h2>운동 구성</h2></div><span className="count-badge">{items.length}개</span></header>
+    <section className="routine-builder"><header className="section-header"><div><h2>운동 구성</h2></div><span className="count-badge">{items.length}개</span></header>
       {items.map((item, exerciseIndex) => <ExerciseCard key={exerciseIndex} exercises={items} index={exerciseIndex} dragIndex={dragIndex} onDragIndex={setDragIndex} onMove={move} onRemove={setRemoving} onUnbind={(groupNumber) => setItems((current) => unbindGroup(current, groupNumber))}>
         <SetTable exercises={items} exercise={item} onChange={(setIndex, field, value) => updateSet(exerciseIndex, setIndex, field, value)} onAdd={() => addSet(exerciseIndex)} onRemove={(setIndex) => removeSet(exerciseIndex, setIndex)}/>
       </ExerciseCard>)}
       {!items.length && <EmptyState icon="routine" title="운동을 추가해 루틴을 구성하세요"/>}<BindExercisesButton exercises={items} onBind={(indexes) => setItems((current) => bindExercises(current, indexes))}/><button type="button" className="add-exercise-button" onClick={() => setPickerOpen(true)}><Icon name="plus"/> 운동 추가</button>
     </section>
-    <div className="sticky-save"><div><span>{items.length}개 운동</span><b>목표 {targetSetCount(items)}세트</b></div><button className="primary-button" disabled={saving}>{saving ? '저장 중...' : '루틴 저장'}</button></div>
+    <div className="sticky-save"><div><span>{items.length}개 운동</span><b>목표 {targetSetCount(items)}세트</b></div><button className="primary-button" disabled={saving}>{saving ? '저장 중…' : '루틴 저장'}</button></div>
   </form>
     {pickerOpen && <ExercisePicker exercises={exercises} excluded={items.map((item) => item.exerciseId)} onSelect={add} onClose={() => setPickerOpen(false)}/>}
     {removing != null && <ConfirmModal title="운동 삭제" message="이 운동과 입력한 세트를 삭제할까요?" onConfirm={() => { setItems((current) => current.filter((_, index) => index !== removing)); setRemoving(null) }} onClose={() => setRemoving(null)}/>}

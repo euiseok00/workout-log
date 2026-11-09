@@ -1,35 +1,11 @@
-:root {
-  font-family: Pretendard, "Noto Sans KR", Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #151515;
-  background: #f6f6f6;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  --ink: #151515;
-  --muted: #77777f;
-  --surface: #fff;
-  --background: #f6f6f6;
-  --line: #e9e9ec;
-  --accent: #f23847;
-  --blue: #246eff;
-  --shadow: 0 12px 38px rgba(31, 31, 40, 0.07);
-  --raised: #f3f3f5;
-  --deep: #fafafa;
-  --accent-soft: #fff0f1;
-  --focus-ring: rgba(242, 56, 71, .16);
-  --success: #198754;
-  --danger: #ce2c3a;
-  --danger-hover: #b8202e;
-  --danger-soft: #fff0f1;
-  --danger-line: #ffd2d7;
-  --danger-contrast: #fff;
-}
-* { box-sizing: border-box; }
-html { background: var(--background); }
-body { margin: 0; min-width: 320px; min-height: 100vh; }
-button, input, select { font: inherit; }
-button, a { -webkit-tap-highlight-color: transparent; }
-button { cursor: pointer; }
-a { color: inherit; }
-h1, h2, h3, p { margin-top: 0; }
-button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid rgba(36, 110, 255, .24); outline-offset: 2px; }
+/* Hallmark · shape: app screen · genre: modern-minimal · theme: brand · redesign: restyle · scope: app
+ * paper: oklch(97.2% 0.004 40) · accent: oklch(55% 0.205 25) · display: Pretendard · body: Pretendard
+ * nav: kept (sidebar, bottom bar under 760px) · signature: the set ledger, rows of weight and reps with a check · states: loading, empty, error, full
+ * axes: light/grotesk-sans/chromatic-red · posture: hairline ledger, no shadows at rest · contrast: pass · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H4 E4 S3 R5 V3 · weakest: S, the frame is a common app shell kept on request; carried it with tabular figures and ruled set tables instead of tinted tiles */
+/* Hallmark · waive 39b · calendar day cells are 74px buttons that hold a date and a character face · each cell is a day in the month grid, not a control row */
+/* Hallmark · dropped {<span className="save-status"><i/> {sessionId ? '기록 수정 중' : '임시 저장됨'}</span>} · the chip stays with role status, only its decorative dot went (63) */
+/* Hallmark · dropped 12 이번 달 운동 · the sign-in art showed invented figures (12 days, 84320 kg, 126 sets) that no user recorded (46a) */
+/* Hallmark · dismissed 25 · empty-state, start-option and sign-in captions are one or two sentences, set from 32ch as captions */
+@import url("./tokens.css");
+@import url("./base.css");

@@ -1,9 +1,10 @@
+/* Hallmark · shape: app screen · theme: brand · redesign: restyle · the system and stamp live in src/index.css */
 .character-layer {
   position: fixed;
-  right: 24px;
-  bottom: 24px;
-  z-index: 60;
-  width: min(200px, calc(100vw - 48px));
+  right: var(--space-lg);
+  bottom: var(--space-lg);
+  z-index: var(--z-sticky);
+  width: min(200px, calc(100% - 48px));
   pointer-events: none;
   display: flex;
   flex-direction: column;
@@ -12,23 +13,24 @@
 }
 
 .character-layer[data-event="WORKOUT_SAVE_SUCCESS"] {
-  width: min(300px, calc(100vw - 48px));
+  width: min(300px, calc(100% - 48px));
   animation-name: character-success;
 }
 
 .character-layer[data-event="WORKOUT_SAVE_ERROR"] {
-  width: min(280px, calc(100vw - 48px));
+  width: min(280px, calc(100% - 48px));
   animation-name: character-error;
 }
 
 .character-image { display: block; width: 100%; height: auto; }
 .character-message {
   max-width: 100%;
-  margin: 0 0 8px;
-  padding: 10px 15px;
-  border-radius: 16px;
-  background: #fff;
-  box-shadow: var(--shadow);
+  margin: 0 0 var(--space-xs);
+  padding: var(--space-xs) var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-pop);
   color: var(--ink);
   font-size: 14px;
   font-weight: 700;
@@ -57,14 +59,17 @@
 }
 
 @media (max-width: 760px) {
-  .character-layer { right: 12px; bottom: 12px; width: min(150px, calc(100vw - 24px)); z-index: 10; }
-  .app-shell ~ .character-layer { bottom: max(90px, calc(env(safe-area-inset-bottom) + 80px)); }
-  .character-layer[data-event="WORKOUT_SAVE_SUCCESS"] { width: min(210px, calc(100vw - 24px)); }
-  .character-layer[data-event="WORKOUT_SAVE_ERROR"] { width: min(200px, calc(100vw - 24px)); }
+  /* Hallmark · shape: app screen · theme: brand · redesign: restyle · the system and stamp live in src/index.css */
+.character-layer { right: var(--space-sm); bottom: var(--space-sm); width: min(150px, calc(100% - 24px)); z-index: 10; }
+  .app-shell ~ /* Hallmark · shape: app screen · theme: brand · redesign: restyle · the system and stamp live in src/index.css */
+.character-layer { bottom: max(90px, calc(env(safe-area-inset-bottom) + 80px)); }
+  .character-layer[data-event="WORKOUT_SAVE_SUCCESS"] { width: min(210px, calc(100% - 24px)); }
+  .character-layer[data-event="WORKOUT_SAVE_ERROR"] { width: min(200px, calc(100% - 24px)); }
   .character-image { max-height: 42dvh; object-fit: contain; }
-  .character-message { padding: 8px 10px; font-size: 12px; overflow-wrap: anywhere; }
+  .character-message { padding: var(--space-xs) var(--space-sm); font-size: var(--text-xs); overflow-wrap: break-word; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .character-layer { animation: none; }
+  /* Hallmark · shape: app screen · theme: brand · redesign: restyle · the system and stamp live in src/index.css */
+.character-layer { animation: none; }
 }
